@@ -1,0 +1,23 @@
+{
+  "actuators": {
+    "gpio_18_green_led": false,
+    "gpio_19_yellow_led": true,
+    "gpio_23_red_led": false,
+    "gpio_5_buzzer": false,
+    "severity": "MODERATE",
+    "last_updated": "2026-08-31T23:37:15.575894"
+  },
+  "oled_frame": [
+    "== UHI MICRO-NODE == ",
+    "                     ",
+    "TEMP :  29.4 C       ",
+    "HUM  :  64.9 %       ",
+    "HI   :  35.9 C       ",
+    "                     ",
+    "STATUS: [MODERATE]   ",
+    "VIRTUAL NODE         "
+  ],
+  "last_packet": {},
+  "is_running": false,
+  "written_at": "2026-08-31T23:37:15.667988"
+}

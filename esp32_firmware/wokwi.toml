@@ -1,0 +1,9 @@
+[wokwi]
+version = 1
+firmware = ".pio/build/esp32-espidf/firmware.bin"
+elf = ".pio/build/esp32-espidf/firmware.elf"
+diagram = "diagram.json"
+
+[metadata]
+name = "ESP32 UHI Micro-Climate Node"
+description = "DHT22, OLED, LDR, LEDs, buzzer, and UHI telemetry for virtual and hardware simulation"

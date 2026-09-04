@@ -1,0 +1,57 @@
+{
+  "latest": {
+    "packet_id": 2,
+    "node_id": "ESP32_UHI_NODE_VIRTUAL",
+    "zone_id": "MZ_001",
+    "zone_name": "Cubbon Park",
+    "ambient_temp_c": 29.38,
+    "relative_humidity_pct": 64.9,
+    "lst_c": 32.79,
+    "heat_index_c": 35.87,
+    "hardware_alert": "MODERATE",
+    "diurnal_offset_c": 2.045,
+    "drift_c": 0.0069,
+    "timestamp": 1788199635,
+    "iso_time": "2026-08-31T23:37:15.574807"
+  },
+  "history": [
+    {
+      "packet_id": 2,
+      "node_id": "ESP32_UHI_NODE_VIRTUAL",
+      "zone_id": "MZ_001",
+      "zone_name": "Cubbon Park",
+      "ambient_temp_c": 29.38,
+      "relative_humidity_pct": 64.9,
+      "lst_c": 32.79,
+      "heat_index_c": 35.87,
+      "hardware_alert": "MODERATE",
+      "diurnal_offset_c": 2.045,
+      "drift_c": 0.0069,
+      "timestamp": 1788199635,
+      "iso_time": "2026-08-31T23:37:15.574807"
+    },
+    {
+      "packet_id": 1,
+      "node_id": "ESP32_UHI_NODE_VIRTUAL",
+      "zone_id": "MZ_001",
+      "zone_name": "Cubbon Park",
+      "ambient_temp_c": 29.69,
+      "relative_humidity_pct": 66.06,
+      "lst_c": 32.47,
+      "heat_index_c": 36.3,
+      "hardware_alert": "MODERATE",
+      "diurnal_offset_c": 2.045,
+      "drift_c": 0.0037,
+      "timestamp": 1788199635,
+      "iso_time": "2026-08-31T23:37:15.521707"
+    }
+  ],
+  "meta": {
+    "zone_id": "MZ_001",
+    "zone_name": "Cubbon Park",
+    "stream_start": "2026-08-31T23:37:15.470357",
+    "total_packets": 2,
+    "interval_s": 0.05,
+    "is_running": false
+  }
+}

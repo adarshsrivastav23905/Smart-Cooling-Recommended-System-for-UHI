@@ -1,0 +1,82 @@
+{
+  "interventions": {
+    "COOL_ROOF_ALBEDO": {
+      "name": "High-Albedo Cool Roof Coating & Reflective Membrane",
+      "category": "Surface Modification",
+      "target_surfaces": ["Flat concrete roofs", "Industrial metal sheets", "Commercial rooftops"],
+      "albedo_delta": 0.45,
+      "base_temp_reduction_min": 1.5,
+      "base_temp_reduction_max": 3.2,
+      "cost_per_sqm_inr": 350,
+      "implementation_time_weeks": 3,
+      "suitability_criteria": {
+        "min_building_density": 50.0,
+        "max_albedo": 0.25,
+        "min_ndbi": 0.30
+      },
+      "description": "Applies high-reflectance titanium dioxide elastomeric or thermoplastic white roof coatings (SRI > 80) to reflect shortwave solar radiation before absorption."
+    },
+    "URBAN_FORESTRY_CANOPY": {
+      "name": "Intensive Urban Tree Canopy & Street Afforestation",
+      "category": "Green Infrastructure",
+      "target_surfaces": ["Road medians", "Pedestrian walkways", "Park buffers", "Residential avenues"],
+      "ndvi_delta": 0.35,
+      "base_temp_reduction_min": 2.2,
+      "base_temp_reduction_max": 4.8,
+      "cost_per_sqm_inr": 600,
+      "implementation_time_weeks": 8,
+      "suitability_criteria": {
+        "max_tree_canopy": 35.0,
+        "max_ndvi": 0.40,
+        "min_thermal_index": 50.0
+      },
+      "description": "Deploys multi-tier native shade trees (Neem, Honge, Peepal) to shade asphalt surfaces and maximize cooling via latent heat evapotranspiration."
+    },
+    "GREEN_ROOFS_VERTICAL_GARDEN": {
+      "name": "Extensive Green Roofs & Bio-Solar Living Walls",
+      "category": "Green Infrastructure",
+      "target_surfaces": ["Commercial building facades", "RCC rooftops", "Public infrastructure walls"],
+      "ndvi_delta": 0.20,
+      "base_temp_reduction_min": 1.2,
+      "base_temp_reduction_max": 2.6,
+      "cost_per_sqm_inr": 1200,
+      "implementation_time_weeks": 6,
+      "suitability_criteria": {
+        "min_building_density": 65.0,
+        "max_tree_canopy": 25.0
+      },
+      "description": "Integrates lightweight modular sedum and succulent vegetative layers on roofs and vertical living facades to insulate buildings and reduce sensible heat flux."
+    },
+    "PERMEABLE_COOL_PAVEMENTS": {
+      "name": "Permeable Interlocking Cool Pavements & Porous Asphalt",
+      "category": "Pavement Engineering",
+      "target_surfaces": ["Parking lots", "Transit bays", "Pedestrian plazas", "Internal roads"],
+      "albedo_delta": 0.25,
+      "base_temp_reduction_min": 1.0,
+      "base_temp_reduction_max": 2.4,
+      "cost_per_sqm_inr": 850,
+      "implementation_time_weeks": 5,
+      "suitability_criteria": {
+        "min_ndbi": 0.45,
+        "max_albedo": 0.18
+      },
+      "description": "Replaces standard impervious blacktop asphalt with high-albedo porous concrete or interlocking pavers that retain subsurface moisture and allow evaporative cooling."
+    },
+    "EVAPORATIVE_MISTING_WATER_PLAZA": {
+      "name": "Micro-Misting Canopies & Urban Water Retention Plazas",
+      "category": "Active Evaporative Cooling",
+      "target_surfaces": ["Transit terminals", "High-footfall commercial squares", "Pedestrian concourses"],
+      "humidity_delta": 8.0,
+      "base_temp_reduction_min": 1.5,
+      "base_temp_reduction_max": 3.0,
+      "cost_per_sqm_inr": 950,
+      "implementation_time_weeks": 4,
+      "suitability_criteria": {
+        "min_traffic_density": 1000,
+        "max_humidity": 55.0,
+        "min_thermal_index": 65.0
+      },
+      "description": "Installs high-pressure micro-nozzle misting lines and daylighted bioswales/shallow fountains to rapidly lower localized ambient air temperatures by 2-3°C through sensible heat absorption."
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "author": "Antigravity Climate AI Team",
+  "editor": "wokwi",
+  "description": "ESP32 UHI Micro-Climate Sensing Node v2 — dual DHT22 sensors, SSD1306 OLED, tri-color alert LEDs, piezo buzzer, and LDR albedo proxy sensor.",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+
+    { "type": "wokwi-dht22", "id": "dht22_primary",
+      "top": -140, "left": -160, "attrs": { "temperature": "38.2", "humidity": "34.0" },
+      "label": "DHT22 Primary (GPIO 4)" },
+
+    { "type": "wokwi-dht22", "id": "dht22_redundant",
+      "top": -140, "left": -60, "attrs": { "temperature": "37.9", "humidity": "34.5" },
+      "label": "DHT22 Redundant (GPIO 15)" },
+
+    { "type": "board-ssd1306", "id": "oled",
+      "top": -160, "left": 120, "attrs": { "i2cAddress": "0x3c" },
+      "label": "SSD1306 0.96in OLED (I2C 0x3C)" },
+
+    { "type": "wokwi-photoresistor-sensor", "id": "ldr",
+      "top": -140, "left": 240, "attrs": { "lux": "800" },
+      "label": "LDR — Ambient Light / Albedo Proxy (GPIO 34)" },
+
+    { "type": "wokwi-led", "id": "led_red",    "top": 180, "left": -100, "attrs": { "color": "red" },    "label": "HIGH Alert" },
+    { "type": "wokwi-led", "id": "led_yellow", "top": 180, "left": -50,  "attrs": { "color": "yellow" }, "label": "MODERATE Caution" },
+    { "type": "wokwi-led", "id": "led_green",  "top": 180, "left": 0,    "attrs": { "color": "green" },  "label": "LOW Safe" },
+
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 180, "left": 60, "attrs": {}, "label": "Piezo Buzzer (Extreme Alert)" },
+
+    { "type": "wokwi-resistor", "id": "r1", "top": 130, "left": -100, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 130, "left": -50,  "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 130, "left": 0,    "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r_ldr", "top": -100, "left": 270, "attrs": { "value": "10000" }, "label": "LDR Pull-down 10k" }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "esp:3V3", "dht22_primary:VCC",     "red",   [ "v0" ] ],
+    [ "esp:GND", "dht22_primary:GND",     "black", [ "v0" ] ],
+    [ "esp:4",   "dht22_primary:SDA",     "green", [ "v0" ] ],
+
+    [ "esp:3V3", "dht22_redundant:VCC",   "red",   [ "v0" ] ],
+    [ "esp:GND", "dht22_redundant:GND",   "black", [ "v0" ] ],
+    [ "esp:15",  "dht22_redundant:SDA",   "cyan",  [ "v0" ] ],
+
+    [ "esp:3V3", "oled:VCC",  "red",    [ "v0" ] ],
+    [ "esp:GND", "oled:GND",  "black",  [ "v0" ] ],
+    [ "esp:22",  "oled:SCL",  "yellow", [ "v0" ] ],
+    [ "esp:21",  "oled:SDA",  "blue",   [ "v0" ] ],
+
+    [ "esp:3V3",  "ldr:VCC",        "red",   [ "v0" ] ],
+    [ "esp:GND",  "r_ldr:2",        "black", [ "v0" ] ],
+    [ "ldr:OUT",  "esp:34",         "orange",[ "v0" ] ],
+    [ "ldr:OUT",  "r_ldr:1",        "gray",  [ "v0" ] ],
+
+    [ "esp:23", "r1:1",         "red",   [ "v0" ] ],
+    [ "r1:2",   "led_red:A",    "red",   [ "v0" ] ],
+    [ "led_red:C", "esp:GND",   "black", [ "v0" ] ],
+
+    [ "esp:19",    "r2:1",         "gold",  [ "v0" ] ],
+    [ "r2:2",      "led_yellow:A", "gold",  [ "v0" ] ],
+    [ "led_yellow:C", "esp:GND",   "black", [ "v0" ] ],
+
+    [ "esp:18",    "r3:1",        "green", [ "v0" ] ],
+    [ "r3:2",      "led_green:A", "green", [ "v0" ] ],
+    [ "led_green:C", "esp:GND",   "black", [ "v0" ] ],
+
+    [ "esp:5",  "buzzer:2", "purple", [ "v0" ] ],
+    [ "esp:GND","buzzer:1", "black",  [ "v0" ] ]
+  ],
+  "wokwi_link": "https://wokwi.com — paste this JSON into a new project to simulate",
+  "component_notes": {
+    "dht22_primary":   "Primary temperature/humidity node on GPIO 4 (1-Wire + 10kΩ pull-up)",
+    "dht22_redundant": "Redundant node on GPIO 15 — cross-validates primary; averaged in firmware v2",
+    "oled":            "SSD1306 128×64 I2C OLED showing live readings and severity status",
+    "ldr":             "Photoresistor as ambient light proxy — ADC on GPIO 34 (input-only); used as a qualitative surface albedo indicator",
+    "led_red":         "HIGH thermal stress alert (temp ≥ 36.5°C or HI ≥ 38°C)",
+    "led_yellow":      "MODERATE thermal stress (temp ≥ 31°C or HI ≥ 33°C)",
+    "led_green":       "LOW thermal stress — safe micro-climate",
+    "buzzer":          "Acoustic extreme-heat alarm (fires when temp ≥ 38°C)"
+  }
+}
