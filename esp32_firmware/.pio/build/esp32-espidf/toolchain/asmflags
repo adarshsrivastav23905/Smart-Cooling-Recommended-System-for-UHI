@@ -1,6 +1,0 @@
--Wno-frame-address
--mlongcalls
--fno-builtin-memcpy
--fno-builtin-memset
--fno-builtin-bzero
-"-specs=U:/esp32_firmware/.pio/build/esp32-espidf/specs/picolibc.specs"
