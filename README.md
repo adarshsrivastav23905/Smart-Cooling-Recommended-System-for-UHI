@@ -176,6 +176,17 @@ platformio run -d esp32_firmware -e esp32-espidf --target upload
 platformio device monitor -d esp32_firmware -b 115200
 ```
 
+## 📊 Browser Dashboard
+
+The dashboard is a static browser application and does not require Python or a
+web server. Open `dashboard/index.html` directly in a browser, then choose
+either **Virtual C-style stream** or **ESP32 Web Serial**. Web Serial requires
+Chrome or Edge and a secure context such as `localhost` when connecting to a
+physical board.
+
+For Web Serial access, serve the `dashboard` folder with VS Code Live Server
+or another static file server and open the resulting local URL. The project
+runtime and dashboard logic remain JavaScript and embedded C.
 ---
 
 ## 🧪 Testing & Validation Suite

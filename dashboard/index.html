@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UHI Edge Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ESP32 / NATIVE C TELEMETRY</p>
+        <h1>Urban Heat Field Console</h1>
+        <p class="subtitle">A live view of edge sensing, thermal stress, and cooling response.</p>
+      </div>
+      <div class="connection-pill" id="connectionPill"><span></span><b id="connectionText">Virtual standby</b></div>
+    </header>
+
+    <section class="control-strip" aria-label="Dashboard controls">
+      <label>Data source
+        <select id="sourceSelect">
+          <option value="virtual">Virtual C-style stream</option>
+          <option value="serial">ESP32 Web Serial</option>
+        </select>
+      </label>
+      <label>Virtual interval
+        <input id="intervalInput" type="number" min="250" step="250" value="1000"> <span>ms</span>
+      </label>
+      <button class="primary" id="startButton">Start stream</button>
+      <button class="secondary" id="connectButton" hidden>Connect ESP32</button>
+      <button class="secondary" id="stopButton">Stop</button>
+      <span class="packet-count" id="packetCount">0 packets</span>
+    </section>
+
+    <section class="hero-grid">
+      <article class="temperature-panel panel">
+        <div class="panel-label">CURRENT MICROCLIMATE</div>
+        <div class="temperature-value"><span id="temperatureValue">--.-</span><small> C</small></div>
+        <div class="reading-row"><span>Relative humidity</span><strong id="humidityValue">--.- %</strong></div>
+        <div class="reading-row"><span>Heat index</span><strong id="heatIndexValue">--.- C</strong></div>
+        <div class="reading-row"><span>Node uptime</span><strong id="uptimeValue">--</strong></div>
+      </article>
+      <article class="severity-panel panel" id="severityPanel">
+        <div class="panel-label">THERMAL ALERT</div>
+        <div class="severity-word" id="severityValue">STANDBY</div>
+        <p id="severityDetail">Start the virtual stream or connect an ESP32 node.</p>
+        <div class="severity-meter"><span id="severityMeter"></span></div>
+      </article>
+      <article class="recommendation-panel panel">
+        <div class="panel-label">EDGE RECOMMENDATION</div>
+        <div class="recommendation-name" id="recommendationValue">Awaiting telemetry</div>
+        <div class="impact-grid">
+          <div><span>Thermal stress</span><strong id="stressValue">--</strong></div>
+          <div><span>Expected drop</span><strong id="dropValue">--.- C</strong></div>
+          <div><span>HVAC savings</span><strong id="savingsValue">--.- %</strong></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="lower-grid">
+      <article class="panel chart-panel">
+        <div class="section-heading"><div><div class="panel-label">LIVE TRACE</div><h2>Ambient temperature</h2></div><span id="lastUpdated">No readings yet</span></div>
+        <canvas id="temperatureChart" width="760" height="260" aria-label="Ambient temperature chart"></canvas>
+      </article>
+      <article class="panel actuator-panel">
+        <div class="panel-label">HARDWARE STATE</div>
+        <h2>Actuator response</h2>
+        <div class="actuator-list">
+          <div><i class="led green" id="greenLed"></i><span>Safe LED</span><b id="greenState">OFF</b></div>
+          <div><i class="led yellow" id="yellowLed"></i><span>Caution LED</span><b id="yellowState">OFF</b></div>
+          <div><i class="led red" id="redLed"></i><span>Alert LED</span><b id="redState">OFF</b></div>
+          <div><i class="buzzer" id="buzzerState"></i><span>Extreme heat buzzer</span><b id="buzzerText">OFF</b></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel log-panel">
+      <div class="section-heading"><div><div class="panel-label">SERIAL EVENT LOG</div><h2>Recent packets</h2></div><button class="text-button" id="clearButton">Clear</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Packet</th><th>Temperature</th><th>Humidity</th><th>Severity</th><th>Recommendation</th><th>Time</th></tr></thead><tbody id="packetTable"><tr><td colspan="6" class="empty">No telemetry received.</td></tr></tbody></table></div>
+    </section>
+
+    <footer>UHI Edge Dashboard <span>•</span> Native C telemetry contract</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
