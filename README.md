@@ -1,5 +1,5 @@
 # Smart Cooling Strategy Recommendation System for Urban Heat Island Reduction 🏙️🌿
-
+    
 [![Language: Pure C99](https://img.shields.io/badge/Language-Pure%20C99-00599C?style=for-the-badge&logo=c&logoColor=white)](https://en.cppreference.com/w/c)
 [![ESP-IDF](https://img.shields.io/badge/ESP--IDF-FreeRTOS-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 [![ESP32 Hardware](https://img.shields.io/badge/ESP32-DevKit--V1-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/)
