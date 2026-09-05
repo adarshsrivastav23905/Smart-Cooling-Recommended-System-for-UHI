@@ -24,6 +24,7 @@
 #include "esp_log.h"
 #include "rom/ets_sys.h"
 #include "uhi_engine.h"
+#include "uhi_random_forest.h"
 
 #define TAG "UHI_EDGE_NODE"
 
@@ -412,22 +413,25 @@ void uhi_telemetry_task(void *pvParameters) {
                 .albedo = 0.25f,
                 .building_density_pct = 70.0f,
                 .tree_canopy_cover_pct = 15.0f,
-                .traffic_density = 0.0f
+                .traffic_density = 2200.0f,
+                .population_density = 12000.0f
             };
             uhi_assessment_t assessment = uhi_assess_zone(&features);
+            rf_prediction_t rf_pred = uhi_rf_predict(&features);
 
-            /* Emit a self-contained serial contract for embedded consumers. */
-            const char *sev_str = (tele.severity == SEVERITY_HIGH) ? "HIGH" :
-                                  (tele.severity == SEVERITY_MODERATE) ? "MODERATE" : "LOW";
+            const char *sev_str = uhi_severity_name(assessment.severity);
+            const char *rec_name = uhi_recommendation_name(assessment.primary_recommendation);
 
             snprintf(json_buffer, sizeof(json_buffer),
                 "{\"packet_id\":%lu,\"node_id\":\"ESP32_UHI_NODE_C\",\"ambient_temp_c\":%.2f,"
                 "\"relative_humidity_pct\":%.2f,\"heat_index_c\":%.2f,\"severity\":\"%s\","
+                "\"rf_class\":\"%s\",\"rf_confidence\":%.2f,"
                 "\"thermal_stress_index\":%.2f,\"expected_drop_c\":%.2f,\"hvac_savings_pct\":%.2f,"
-                "\"recommendation\":\"%s\",\"uptime_ms\":%lld}\n",
+                "\"recommendation\":\"%s\",\"cost_inr_sqm\":%.0f,\"uptime_ms\":%lld}\n",
                 tele.packet_id, tele.temperature_c, tele.relative_humidity_pct, tele.heat_index_c, sev_str,
+                rf_pred.class_label, rf_pred.confidence,
                 assessment.thermal_stress_index, assessment.expected_drop_c,
-                assessment.hvac_savings_pct, uhi_recommendation_name(assessment.recommendation), tele.uptime_ms);
+                assessment.hvac_savings_pct, rec_name, assessment.estimated_cost_inr_sqm, tele.uptime_ms);
 
             printf("%s", json_buffer);
 

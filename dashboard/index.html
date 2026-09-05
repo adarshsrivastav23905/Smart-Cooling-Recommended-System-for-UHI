@@ -3,85 +3,379 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UHI Edge Dashboard</title>
+  <title>Smart Cooling Strategy Recommendation System for Urban Heat Island</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="shell">
+  <div class="app-layout">
+    <!-- Top Header -->
     <header class="topbar">
-      <div>
-        <p class="eyebrow">ESP32 / NATIVE C TELEMETRY</p>
-        <h1>Urban Heat Field Console</h1>
-        <p class="subtitle">A live view of edge sensing, thermal stress, and cooling response.</p>
+      <div class="brand">
+        <div class="brand-badge">URBAN CLIMATE INTELLIGENCE <span>•</span> DECISION SUPPORT</div>
+        <h1>Smart Cooling Strategy Recommendation System</h1>
+        <p class="subtitle">AI & IoT Driven Micro-Climate Mitigation Platform for Urban Heat Islands</p>
       </div>
-      <div class="connection-pill" id="connectionPill"><span></span><b id="connectionText">Virtual standby</b></div>
+      <div class="header-actions">
+        <div class="live-weather-pill" id="liveWeatherPill">
+          <span class="live-badge">LIVE API</span>
+          <span id="liveWeatherText">Fetching Bengaluru Weather...</span>
+        </div>
+        <div class="connection-pill" id="connectionPill">
+          <span class="pulse-dot"></span>
+          <b id="connectionText">Virtual C Standby</b>
+        </div>
+        <button class="btn btn-primary" id="exportReportBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export Action Plan
+        </button>
+      </div>
     </header>
 
-    <section class="control-strip" aria-label="Dashboard controls">
-      <label>Data source
-        <select id="sourceSelect">
-          <option value="virtual">Virtual C-style stream</option>
-          <option value="serial">ESP32 Web Serial</option>
-        </select>
-      </label>
-      <label>Virtual interval
-        <input id="intervalInput" type="number" min="250" step="250" value="1000"> <span>ms</span>
-      </label>
-      <button class="primary" id="startButton">Start stream</button>
-      <button class="secondary" id="connectButton" hidden>Connect ESP32</button>
-      <button class="secondary" id="stopButton">Stop</button>
-      <span class="packet-count" id="packetCount">0 packets</span>
-    </section>
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Main Navigation">
+      <button class="tab-btn active" data-tab="tab-gis">🗺️ GIS Heatmap & Micro-Zones</button>
+      <button class="tab-btn" data-tab="tab-scenario">🔬 What-If Scenario Simulator</button>
+      <button class="tab-btn" data-tab="tab-telemetry">📟 Live IoT Edge Stream</button>
+      <button class="tab-btn" data-tab="tab-catalog">🌿 5-Cooling Intervention Catalog</button>
+    </nav>
 
-    <section class="hero-grid">
-      <article class="temperature-panel panel">
-        <div class="panel-label">CURRENT MICROCLIMATE</div>
-        <div class="temperature-value"><span id="temperatureValue">--.-</span><small> C</small></div>
-        <div class="reading-row"><span>Relative humidity</span><strong id="humidityValue">--.- %</strong></div>
-        <div class="reading-row"><span>Heat index</span><strong id="heatIndexValue">--.- C</strong></div>
-        <div class="reading-row"><span>Node uptime</span><strong id="uptimeValue">--</strong></div>
-      </article>
-      <article class="severity-panel panel" id="severityPanel">
-        <div class="panel-label">THERMAL ALERT</div>
-        <div class="severity-word" id="severityValue">STANDBY</div>
-        <p id="severityDetail">Start the virtual stream or connect an ESP32 node.</p>
-        <div class="severity-meter"><span id="severityMeter"></span></div>
-      </article>
-      <article class="recommendation-panel panel">
-        <div class="panel-label">EDGE RECOMMENDATION</div>
-        <div class="recommendation-name" id="recommendationValue">Awaiting telemetry</div>
-        <div class="impact-grid">
-          <div><span>Thermal stress</span><strong id="stressValue">--</strong></div>
-          <div><span>Expected drop</span><strong id="dropValue">--.- C</strong></div>
-          <div><span>HVAC savings</span><strong id="savingsValue">--.- %</strong></div>
+    <!-- TAB 1: GIS HEATMAP & MICRO-ZONES -->
+    <section class="tab-content active" id="tab-gis">
+      <div class="gis-grid">
+        <!-- Map Panel -->
+        <div class="card map-card">
+          <div class="card-header">
+            <div>
+              <span class="card-tag">SPATIAL THERMAL ANALYSIS</span>
+              <h2>Bengaluru Urban Micro-Zone Heatmap</h2>
+            </div>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <button class="btn btn-sm btn-secondary" id="syncLiveWeatherBtn">🔄 Sync Live Weather</button>
+              <div class="map-legend">
+                <span class="legend-item"><i class="dot dot-low"></i> Low (&lt;30°C)</span>
+                <span class="legend-item"><i class="dot dot-mod"></i> Moderate (30-36°C)</span>
+                <span class="legend-item"><i class="dot dot-high"></i> High (&gt;36°C)</span>
+              </div>
+            </div>
+          </div>
+          <div id="gisMap" class="gis-map-canvas"></div>
         </div>
-      </article>
-    </section>
 
-    <section class="lower-grid">
-      <article class="panel chart-panel">
-        <div class="section-heading"><div><div class="panel-label">LIVE TRACE</div><h2>Ambient temperature</h2></div><span id="lastUpdated">No readings yet</span></div>
-        <canvas id="temperatureChart" width="760" height="260" aria-label="Ambient temperature chart"></canvas>
-      </article>
-      <article class="panel actuator-panel">
-        <div class="panel-label">HARDWARE STATE</div>
-        <h2>Actuator response</h2>
-        <div class="actuator-list">
-          <div><i class="led green" id="greenLed"></i><span>Safe LED</span><b id="greenState">OFF</b></div>
-          <div><i class="led yellow" id="yellowLed"></i><span>Caution LED</span><b id="yellowState">OFF</b></div>
-          <div><i class="led red" id="redLed"></i><span>Alert LED</span><b id="redState">OFF</b></div>
-          <div><i class="buzzer" id="buzzerState"></i><span>Extreme heat buzzer</span><b id="buzzerText">OFF</b></div>
+        <!-- Zone Detail & Prescriptive Prescription -->
+        <div class="card zone-detail-card">
+          <div class="card-header">
+            <div>
+              <span class="card-tag">PARCEL DIAGNOSTIC</span>
+              <h2 id="zoneTitle">Select a Micro-Zone</h2>
+            </div>
+            <span class="badge" id="zoneSeverityBadge">STANDBY</span>
+          </div>
+
+          <div class="zone-metrics-grid">
+            <div class="metric-box">
+              <span class="label">Land Surface Temp (LST)</span>
+              <strong class="val" id="zoneLst">--.- °C</strong>
+            </div>
+            <div class="metric-box">
+              <span class="label">Ambient Dry-Bulb Air</span>
+              <strong class="val" id="zoneAirTemp">--.- °C</strong>
+            </div>
+            <div class="metric-box">
+              <span class="label">Vegetation Index (NDVI)</span>
+              <strong class="val" id="zoneNdvi">-.--</strong>
+            </div>
+            <div class="metric-box">
+              <span class="label">Built-Up Index (NDBI)</span>
+              <strong class="val" id="zoneNdbi">-.--</strong>
+            </div>
+            <div class="metric-box">
+              <span class="label">Building Footprint</span>
+              <strong class="val" id="zoneBuilt">-- %</strong>
+            </div>
+            <div class="metric-box">
+              <span class="label">Tree Canopy Crown</span>
+              <strong class="val" id="zoneCanopy">-- %</strong>
+            </div>
+          </div>
+
+          <!-- Prescription Card -->
+          <div class="prescription-box">
+            <div class="card-tag">RECOMMENDED COOLING INTERVENTION</div>
+            <h3 id="zoneRecTitle">Awaiting micro-zone selection...</h3>
+            <p class="desc" id="zoneRecDesc">Click any marker or polygon on the interactive GIS map to generate a context-aware cooling strategy.</p>
+            <div class="impact-metrics-row">
+              <div class="impact-chip">
+                <span>Predicted Temp Reduction</span>
+                <strong id="zoneExpDrop">--.- °C</strong>
+              </div>
+              <div class="impact-chip">
+                <span>HVAC Energy Savings</span>
+                <strong id="zoneHvacSavings">--.- %</strong>
+              </div>
+              <div class="impact-chip">
+                <span>Estimated Cost</span>
+                <strong id="zoneCost">₹ -- / m²</strong>
+              </div>
+              <div class="impact-chip">
+                <span>Deployment Timeline</span>
+                <strong id="zoneWeeks">-- Weeks</strong>
+              </div>
+            </div>
+            <div class="rationale-box" id="zoneRationale">
+              Select a micro-zone to view the AI-derived context rationale.
+            </div>
+          </div>
         </div>
-      </article>
+      </div>
     </section>
 
-    <section class="panel log-panel">
-      <div class="section-heading"><div><div class="panel-label">SERIAL EVENT LOG</div><h2>Recent packets</h2></div><button class="text-button" id="clearButton">Clear</button></div>
-      <div class="table-wrap"><table><thead><tr><th>Packet</th><th>Temperature</th><th>Humidity</th><th>Severity</th><th>Recommendation</th><th>Time</th></tr></thead><tbody id="packetTable"><tr><td colspan="6" class="empty">No telemetry received.</td></tr></tbody></table></div>
+    <!-- TAB 2: WHAT-IF SCENARIO SIMULATOR -->
+    <section class="tab-content" id="tab-scenario">
+      <div class="scenario-layout">
+        <!-- Interactive Controls -->
+        <div class="card scenario-controls-card">
+          <div class="card-header">
+            <div>
+              <span class="card-tag">DECISION SUPPORT SYSTEM</span>
+              <h2>What-If Intervention Simulator</h2>
+            </div>
+            <select id="scenarioZoneSelect" class="form-select">
+              <option value="MZ_004">Majestic Intermodal Transit Concourse (High Heat)</option>
+              <option value="MZ_005">Peenya Industrial Manufacturing Belt (High Heat)</option>
+              <option value="MZ_003">Indiranagar 100ft Road Corridor (Moderate Heat)</option>
+              <option value="MZ_002">Whitefield ITPL Technology Park (Moderate Heat)</option>
+              <option value="MZ_001">Cubbon Park Ecological Belt (Low Heat)</option>
+            </select>
+          </div>
+
+          <div class="sliders-container">
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>🌳 Urban Tree Canopy Expansion</span>
+                <b id="valCanopy">+20 %</b>
+              </div>
+              <input type="range" id="sliderCanopy" min="0" max="50" step="5" value="20">
+              <small>Deploys native multi-tier shade trees along medians and walkways.</small>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>☀️ High-Albedo Cool Roof Coating</span>
+                <b id="valAlbedo">+0.30 Albedo</b>
+              </div>
+              <input type="range" id="sliderAlbedo" min="0" max="0.5" step="0.05" value="0.30">
+              <small>Applies elastomeric white reflective paint (SRI &gt; 80) on rooftops.</small>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>🌿 Extensive Green Roofs & Bio-Walls</span>
+                <b id="valGreenRoof">+15 %</b>
+              </div>
+              <input type="range" id="sliderGreenRoof" min="0" max="60" step="5" value="15">
+              <small>Modular sedum vegetative rooftop layers to reduce sensible heat flux.</small>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>🧱 Permeable Porous Cool Pavements</span>
+                <b id="valPermPave">+25 %</b>
+              </div>
+              <input type="range" id="sliderPermPave" min="0" max="80" step="5" value="25">
+              <small>Replaces impervious asphalt with moisture-retentive interlocking pavers.</small>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>💧 Micro-Misting Water Canopies</span>
+                <b id="valMisting">+20 %</b>
+              </div>
+              <input type="range" id="sliderMisting" min="0" max="100" step="10" value="20">
+              <small>High-pressure evaporative misting lines in high-footfall transit zones.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulation Results & Comparisons -->
+        <div class="scenario-results-area">
+          <div class="card result-highlight-card">
+            <div class="card-header">
+              <span class="card-tag">SIMULATION OUTCOME</span>
+              <h3>Predicted Micro-Climate Impact</h3>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-card accent-green">
+                <span>Expected Temp Drop</span>
+                <strong id="simTempDrop">-3.4 °C</strong>
+                <small>ΔT_effective (Non-linear)</small>
+              </div>
+              <div class="kpi-card accent-blue">
+                <span>HVAC Grid Energy Savings</span>
+                <strong id="simHvacSavings">7.5 %</strong>
+                <small>~2.2% reduction per 1°C</small>
+              </div>
+              <div class="kpi-card accent-purple">
+                <span>Estimated Budget</span>
+                <strong id="simBudget">₹ 42.5 Lakhs</strong>
+                <small>Target area: 50,000 m²</small>
+              </div>
+              <div class="kpi-card accent-amber">
+                <span>Carbon Offset</span>
+                <strong id="simCarbon">148 Tons/Yr</strong>
+                <small>0.82 kg CO2 / kWh saved</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scenario Comparison Table -->
+          <div class="card comparison-table-card">
+            <div class="card-header">
+              <div>
+                <span class="card-tag">BUDGET & STRATEGY BENCHMARK</span>
+                <h3>Intervention Scenario Comparison Matrix</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="scenario-table">
+                <thead>
+                  <tr>
+                    <th>Planning Scenario</th>
+                    <th>Mitigated Temp</th>
+                    <th>Temp Drop (ΔT)</th>
+                    <th>RF Severity</th>
+                    <th>Estimated Budget</th>
+                    <th>HVAC Savings</th>
+                  </tr>
+                </thead>
+                <tbody id="scenarioTableBody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <footer>UHI Edge Dashboard <span>•</span> Native C telemetry contract</footer>
-  </main>
+    <!-- TAB 3: LIVE IOT EDGE STREAM -->
+    <section class="tab-content" id="tab-telemetry">
+      <div class="control-strip">
+        <label>Data Source:
+          <select id="sourceSelect" class="form-select">
+            <option value="live_api">🌍 Live Bengaluru Open-Meteo Weather API</option>
+            <option value="virtual">Virtual C-Style Stream (1.0 Hz)</option>
+            <option value="serial">ESP32 Web Serial (115200 Baud)</option>
+          </select>
+        </label>
+        <label>Sampling Interval:
+          <input id="intervalInput" type="number" min="250" step="250" value="1000" class="form-input"> <span>ms</span>
+        </label>
+        <button class="btn btn-primary" id="startButton">▶ Start Stream</button>
+        <button class="btn btn-secondary" id="connectButton" hidden>🔌 Connect ESP32</button>
+        <button class="btn btn-danger" id="stopButton">⏹ Stop</button>
+        <span class="packet-counter" id="packetCount">0 telemetry packets received</span>
+      </div>
+
+      <div class="telemetry-hero-grid">
+        <div class="card telemetry-card">
+          <span class="card-tag">SENSING NODE TELEMETRY</span>
+          <div class="main-stat"><span id="temperatureValue">--.-</span><small>°C</small></div>
+          <div class="reading-row"><span>Relative Humidity</span><strong id="humidityValue">--.- %</strong></div>
+          <div class="reading-row"><span>Radiometric LST</span><strong id="lstValue">--.- °C</strong></div>
+          <div class="reading-row"><span>Computed Heat Index</span><strong id="heatIndexValue">--.- °C</strong></div>
+          <div class="reading-row"><span>Node Uptime</span><strong id="uptimeValue">-- s</strong></div>
+        </div>
+
+        <div class="card alert-card" id="severityPanel">
+          <span class="card-tag">THERMAL STRESS CLASSIFIER</span>
+          <div class="alert-status" id="severityValue">STANDBY</div>
+          <p id="severityDetail">Start the virtual stream or connect an ESP32 edge node to evaluate live thermal conditions.</p>
+          <div class="meter-bar"><span id="severityMeter"></span></div>
+          <div class="rf-meta-row">
+            <span>RF Model Class: <b id="rfClassValue">--</b></span>
+            <span>Confidence: <b id="rfConfValue">--%</b></span>
+          </div>
+        </div>
+
+        <div class="card hardware-card">
+          <span class="card-tag">ACTUATOR RESPONSE</span>
+          <div class="actuators-grid">
+            <div class="actuator-item">
+              <i class="led-bulb led-green" id="greenLed"></i>
+              <div><b>Safe LED (GPIO 18)</b><span id="greenState">OFF</span></div>
+            </div>
+            <div class="actuator-item">
+              <i class="led-bulb led-yellow" id="yellowLed"></i>
+              <div><b>Caution LED (GPIO 19)</b><span id="yellowState">OFF</span></div>
+            </div>
+            <div class="actuator-item">
+              <i class="led-bulb led-red" id="redLed"></i>
+              <div><b>Alert LED (GPIO 23)</b><span id="redState">OFF</span></div>
+            </div>
+            <div class="actuator-item">
+              <i class="buzzer-icon" id="buzzerState">🔊</i>
+              <div><b>Acoustic Alarm (GPIO 5)</b><span id="buzzerText">OFF</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="card-header">
+          <div>
+            <span class="card-tag">REAL-TIME TELEMETRY TRACE</span>
+            <h2>Ambient Air Temperature History</h2>
+          </div>
+          <span class="timestamp" id="lastUpdated">No telemetry yet</span>
+        </div>
+        <canvas id="temperatureChart" width="1000" height="240"></canvas>
+      </div>
+
+      <div class="card log-card">
+        <div class="card-header">
+          <div>
+            <span class="card-tag">EMBEDDED JSON TELEMETRY CONTRACT</span>
+            <h2>Live Serial Stream Log</h2>
+          </div>
+          <button class="btn btn-sm" id="clearButton">Clear Log</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Packet</th><th>Ambient</th><th>Humidity</th><th>LST</th><th>RF Class</th><th>Recommendation</th><th>Drop</th><th>Time</th></tr>
+            </thead>
+            <tbody id="packetTable">
+              <tr><td colspan="8" class="empty">Awaiting sensor telemetry packets...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: 5-COOLING INTERVENTIONS CATALOG -->
+    <section class="tab-content" id="tab-catalog">
+      <div class="card-header">
+        <div>
+          <span class="card-tag">MITIGATION TAXONOMY</span>
+          <h2>5 Core Context-Aware Urban Cooling Strategies</h2>
+        </div>
+      </div>
+      <div class="catalog-grid" id="catalogCards">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Smart Cooling Strategy Recommendation System for Urban Heat Island <span>•</span> Pure C99 Engine & Embedded IoT Firmware</p>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 </html>
