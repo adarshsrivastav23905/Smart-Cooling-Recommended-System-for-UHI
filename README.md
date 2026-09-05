@@ -9,7 +9,7 @@ An embedded C decision-support system and IoT monitoring framework for Urban Hea
 
 ---
 
-## 📌 Table of Contents
+## 📌 Table of Contents           
 - [Executive Summary & Problem Statement](#-executive-summary--problem-statement)
 - [Key Features & Capabilities](#-key-features--capabilities)
 - [System Architecture (6-Stage Pipeline)](#-system-architecture-6-stage-pipeline)
