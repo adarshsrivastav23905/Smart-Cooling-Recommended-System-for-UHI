@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 An embedded C decision-support system and IoT monitoring framework for Urban Heat Island (UHI) mitigation. It integrates ESP32 edge sensing (DHT22), Random Forest heat severity classification in C, a 5-intervention context-aware recommendation engine, non-linear temperature reduction impact estimation ($\Delta T_{\text{effective}}$), What-If scenario simulation, and an interactive GIS heatmap dashboard.
-   
+     
 ---
 
 ## 📌 Table of Contents           
