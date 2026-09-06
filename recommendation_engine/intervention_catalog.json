@@ -6,7 +6,7 @@
       "target_surfaces": ["Flat concrete roofs", "Industrial metal sheets", "Commercial rooftops"],
       "albedo_delta": 0.45,
       "base_temp_reduction_min": 1.5,
-      "base_temp_reduction_max": 3.2,
+      "base_temp_reduction_max": 3.2,     
       "cost_per_sqm_inr": 350,
       "implementation_time_weeks": 3,
       "suitability_criteria": {
