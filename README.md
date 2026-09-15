@@ -4,7 +4,7 @@
 [![ESP-IDF](https://img.shields.io/badge/ESP--IDF-FreeRTOS-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 [![ESP32 Hardware](https://img.shields.io/badge/ESP32-DevKit--V1-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
-
+   
 An embedded C decision-support system and IoT monitoring framework for Urban Heat Island (UHI) mitigation. It integrates ESP32 edge sensing (DHT22), Random Forest heat severity classification in C, a 5-intervention context-aware recommendation engine, non-linear temperature reduction impact estimation ($\Delta T_{\text{effective}}$), What-If scenario simulation, and an interactive GIS heatmap dashboard.
      
 ---
