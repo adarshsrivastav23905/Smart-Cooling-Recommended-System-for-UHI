@@ -36,7 +36,7 @@ Traditional methods are primarily diagnostic and macro-scale. This project bridg
 
 ```
 [ Ground Sensors + Satellite Observation ] ➔ [ Data Preprocessing in C ] ➔ [ Micro-Zone Segmentation ] ➔ [ Random Forest Classifier in C ] ➔ [ 5-Cooling Strategy Engine ] ➔ [ Non-Linear Impact Estimation ] ➔ [ GIS Dashboard & What-If Planner ]
-```
+```        
 
 ---
 
