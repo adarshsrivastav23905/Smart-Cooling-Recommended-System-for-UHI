@@ -77,7 +77,7 @@ Traditional methods are primarily diagnostic and macro-scale. This project bridg
                                               │
                                               ▼
 +---------------------------------------------------------------------------------------------+
-|                           4. RANDOM FOREST HEAT CLASSIFIER (C99)                            |
+|                           4. RANDOM FOREST HEAT CLASSIFIER (C99)                                 |
 |  - 25-Tree Diverse Ensemble Classifier evaluating multi-spectral & ground parameters        |
 |  - Predictions: [ LOW | MODERATE | HIGH ] + Softmax Probability Distribution & Confidence  |
 +---------------------------------------------------------------------------------------------+
