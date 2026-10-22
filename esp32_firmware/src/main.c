@@ -71,6 +71,15 @@ typedef struct {
     int64_t  uptime_ms;
 } sensor_telemetry_t;
 
+static const char *telemetry_severity_name(heat_severity_t severity) {
+    switch (severity) {
+        case SEVERITY_LOW: return "LOW";
+        case SEVERITY_MODERATE: return "MODERATE";
+        case SEVERITY_HIGH: return "HIGH";
+        default: return "SENSOR_FAULT";
+    }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Low-Level 1-Wire DHT22 Driver in Embedded C                                */
 /* -------------------------------------------------------------------------- */
@@ -370,7 +379,7 @@ static void i2c_master_init(void) {
 void uhi_telemetry_task(void *pvParameters) {
     uint32_t packet_counter = 0;
     char line_buf[32];
-    char json_buffer[256];
+    char json_buffer[512];
 
     ESP_LOGI(TAG, "UHI Telemetry Task running at 0.5Hz on FreeRTOS Core %d", xPortGetCoreID());
 
@@ -419,19 +428,29 @@ void uhi_telemetry_task(void *pvParameters) {
             uhi_assessment_t assessment = uhi_assess_zone(&features);
             rf_prediction_t rf_pred = uhi_rf_predict(&features);
 
-            const char *sev_str = uhi_severity_name(assessment.severity);
+            const char *sev_str = telemetry_severity_name(tele.severity);
+            const char *assessment_sev_str = uhi_severity_name(assessment.severity);
             const char *rec_name = uhi_recommendation_name(assessment.primary_recommendation);
 
             snprintf(json_buffer, sizeof(json_buffer),
                 "{\"packet_id\":%lu,\"node_id\":\"ESP32_UHI_NODE_C\",\"ambient_temp_c\":%.2f,"
-                "\"relative_humidity_pct\":%.2f,\"heat_index_c\":%.2f,\"severity\":\"%s\","
+                "\"relative_humidity_pct\":%.2f,\"heat_index_c\":%.2f,\"lst_c\":null,"
+                "\"severity\":\"%s\",\"assessment_severity\":\"%s\","
                 "\"rf_class\":\"%s\",\"rf_confidence\":%.2f,"
                 "\"thermal_stress_index\":%.2f,\"expected_drop_c\":%.2f,\"hvac_savings_pct\":%.2f,"
-                "\"recommendation\":\"%s\",\"cost_inr_sqm\":%.0f,\"uptime_ms\":%lld}\n",
-                tele.packet_id, tele.temperature_c, tele.relative_humidity_pct, tele.heat_index_c, sev_str,
+                "\"recommendation\":\"%s\",\"cost_inr_sqm\":%.0f,\"uptime_ms\":%lld,"
+                "\"green_led\":%s,\"yellow_led\":%s,\"red_led\":%s,\"buzzer\":%s,"
+                "\"source_label\":\"ESP32 DHT22 measures air temperature and humidity; LST is unavailable. "
+                "Other C-engine features are fixed demonstration inputs.\"}\n",
+                tele.packet_id, tele.temperature_c, tele.relative_humidity_pct, tele.heat_index_c,
+                sev_str, assessment_sev_str,
                 rf_pred.class_label, rf_pred.confidence,
                 assessment.thermal_stress_index, assessment.expected_drop_c,
-                assessment.hvac_savings_pct, rec_name, assessment.estimated_cost_inr_sqm, tele.uptime_ms);
+                assessment.hvac_savings_pct, rec_name, assessment.estimated_cost_inr_sqm, tele.uptime_ms,
+                tele.severity == SEVERITY_LOW ? "true" : "false",
+                tele.severity == SEVERITY_MODERATE ? "true" : "false",
+                tele.severity == SEVERITY_HIGH ? "true" : "false",
+                tele.temperature_c >= THRESHOLD_BUZZER_C ? "true" : "false");
 
             printf("%s", json_buffer);
 

@@ -6,4 +6,4 @@ diagram = "diagram.json"
 
 [metadata]
 name = "ESP32 UHI Micro-Climate Node"
-description = "DHT22, OLED, LDR, LEDs, buzzer, and UHI telemetry for virtual and hardware simulation"
+description = "One DHT22, OLED, severity LEDs, buzzer, and UHI telemetry for virtual demonstration"

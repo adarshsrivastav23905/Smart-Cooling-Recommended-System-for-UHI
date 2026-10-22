@@ -40,6 +40,48 @@ The system is intended to help users compare possible actions, not to replace si
 - Demonstrate how an ESP32 can collect local air-temperature and humidity readings.
 - Present the prototype through an interactive GIS dashboard and command-line simulator.
 
+## 🏆 Competition-Ready Enhancement Strategy
+
+This project is structured to stand out in a final-year engineering evaluation by combining three strong pillars:
+
+- Virtual simulation: multi-zone GIS analysis, scenario simulator, heat-risk scoring, and intervention comparison matrix.
+- Hardware validation: ESP32-based telemetry, actuators, live sensor readings, and serial connectivity for a realistic edge-computing workflow.
+- Decision support: AI/offline planner, municipal action export, resilience scoring, and a deployment roadmap for real-world stakeholders.
+
+The dashboard has been upgraded with an urban resilience index, priority ranking across micro-zones, and a stakeholder-ready action summary so the prototype reads like a polished capstone presentation instead of a static demo.
+
+## 🏅 Competition Presentation Narrative
+
+A strong engineering project presentation should explain:
+
+- It addresses a real city problem with visible social impact.
+- It combines data, software, and hardware instead of relying on a single technology.
+- It demonstrates both analysis and action through a usable planning system.
+- It explains why the solution is practically useful to planners and communities.
+
+The prototype connects configured heat indicators to intervention planning, simulated telemetry, and a documented ESP32 sensing path. Present these as prototype capabilities; the environmental profiles and estimated impacts still require independent validation.
+
+## 🧭 Judge-Friendly Demo Script
+
+1. Open the GIS map and explain the micro-zone concept.
+2. Highlight one hot zone and explain the thermal indicators driving the recommendation.
+3. Show the ranked intervention and rationale for that specific location.
+4. Adjust the scenario sliders to demonstrate estimated cost and cooling impact.
+5. Show the ESP32 telemetry or virtual stream to connect the software to the hardware prototype.
+6. Export the action-plan JSON to show practical usability for planning and reporting.
+
+This flow is easy to explain, visually strong, and demonstrates end-to-end project value in under five minutes.
+
+## ✍️ Competition Abstract
+
+The Smart Cooling Strategy Recommendation System for Urban Heat Island Reduction is a multidisciplinary capstone project developed to address localized urban thermal stress using micro-zone analysis, embedded sensing, and decision-support modeling. The system processes environmental and built-form indicators to identify heat-stressed regions, classify risk severity, and recommend suitable interventions such as cool roofs, urban forestry, green roofs, permeable pavements, and misting plazas. A GIS-based dashboard, C-based assessment engine, and ESP32 telemetry path work together to create a practical and demonstrable urban cooling solution.
+
+The project is designed to bridge the gap between data-driven analysis and actionable urban policy support. It demonstrates how a city can prioritize cooling efforts based on local conditions rather than general averages, while also showing the role of embedded systems and simulation in validating real-time thermal behavior. This makes the prototype highly relevant for final-year engineering evaluation, where technical depth, interdisciplinary integration, and societal impact are all critical.
+
+## ✅ Suggested Closing Statement for the Final Presentation
+
+This project demonstrates a prototype workflow for urban heat decision support: inspect micro-zone indicators, compare cooling options, simulate assumed impacts, and evaluate an ESP32 sensing path. The next step is to validate the data, model behavior, and intervention assumptions through reproducible experiments and field measurements.
+
 ---
 
 ## ✨ Key Features
@@ -245,6 +287,10 @@ The dashboard's browser-generated virtual stream is independent of the native C 
 
 Without an API key, the local server supplies deterministic, rules-based zone guidance. This is not a general-purpose AI model. To enable optional OpenAI responses, set `OPENAI_API_KEY` in the environment used to start the server; `OPENAI_MODEL` can optionally select a model. Planner requests then go from the local server to the OpenAI API and may incur charges. Keep the key out of source control.
 
+### Project REST API
+
+The same local Python server exposes JSON endpoints for processed micro-zone profiles, intervention strategies, recommendations, and scenario estimates. See the [REST API guide](docs/api.md) for endpoint details, request schemas, and examples. These endpoints use the project's local reference data and estimation assumptions; they are not a validated public production API.
+
 ---
 
 ## 🧪 Native C Simulation and CLI
@@ -317,6 +363,8 @@ pio run -d esp32_firmware -e esp32-espidf
 
 Uploading or validating firmware on physical hardware requires a compatible ESP32, correctly wired peripherals, and the appropriate serial port. Wokwi project configuration files are provided, but simulation and physical-device results should be reported separately.
 
+For a repeatable virtual hardware presentation, see the [Wokwi demonstration guide](docs/wokwi_demo.md). It includes test temperatures, expected LED/buzzer behavior, packet interpretation, and troubleshooting.
+
 ---
 
 ## 📸 Project Screenshots
@@ -348,7 +396,8 @@ Smart-Cooling-Recommended-System-for-UHI/
 │   └── styles.css
 ├── docs/
 │   ├── system_architecture.md
-│   └── user_guide.md
+│   ├── user_guide.md
+│   └── wokwi_demo.md
 ├── esp32_firmware/
 │   ├── CMakeLists.txt
 │   ├── platformio.ini
@@ -507,6 +556,7 @@ Results from virtual profiles, hard-coded rules, and modeled scenarios should be
 
 - [System architecture](docs/system_architecture.md)
 - [Dashboard and project user guide](docs/user_guide.md)
+- [Wokwi hardware demonstration guide](docs/wokwi_demo.md)
 - [Project presentation content](PROJECT_PRESENTATION_CONTENT.md)
 - [Intervention catalog](recommendation_engine/intervention_catalog.json)
 

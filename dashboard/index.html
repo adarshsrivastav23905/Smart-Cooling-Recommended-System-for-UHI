@@ -134,8 +134,47 @@
               </div>
             </div>
             <div class="rationale-box" id="zoneRationale">
-              Select a micro-zone to view the AI-derived context rationale.
+              Select a micro-zone to view the context-based rule rationale.
             </div>
+
+            <div class="resilience-panel">
+              <div class="card-tag">URBAN RESILIENCE SCORE</div>
+              <div class="resilience-header">
+                <div>
+                  <span class="muted-label">Heat resilience heuristic</span>
+                  <strong id="zoneResilienceScore">--</strong>
+                </div>
+                <span class="priority-pill" id="zonePriorityRank">Priority --</span>
+              </div>
+              <ul class="roadmap-list" id="zoneRoadmapList">
+                <li>Monitor key thermal indicators and site constraints.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card microzone-comparison-card">
+            <div class="card-header">
+              <div>
+                <span class="card-tag">MICRO-ZONE PRIORITIZATION</span>
+                <h2>Heat Risk Ranking & Strategy Snapshot</h2>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="scenario-table compact-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Zone</th>
+                    <th>Severity</th>
+                    <th>Resilience</th>
+                    <th>Deployment priority score*</th>
+                    <th>Recommended Action</th>
+                  </tr>
+                </thead>
+                <tbody id="microZoneComparisonBody"></tbody>
+              </table>
+            </div>
+            <p class="card-tag">*Heuristic ranking based on configured profile values; weights and thresholds are project assumptions, not a validated municipal risk standard.</p>
           </div>
         </div>
       </div>

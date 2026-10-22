@@ -432,6 +432,8 @@ function selectMicroZone(zone) {
   $("zoneCost").textContent = `₹ ${prescription.strategy.costPerSqm} / m²`;
   $("zoneWeeks").textContent = `${prescription.strategy.weeks} Weeks`;
   $("zoneRationale").innerHTML = `<strong>Context Rationale:</strong> ${prescription.rationale}`;
+  updateZoneResiliencePanel(zone, prescription);
+  renderMicroZoneComparisonTable();
   if ($("sliderCanopy")) updateScenarioSimulation();
 
   if (zoneChanged) {
@@ -482,6 +484,79 @@ function evaluatePrescription(zone) {
   const hvacSavings = expectedDrop * 2.2;
 
   return { strategy, expectedDrop, hvacSavings, rationale };
+}
+
+function getZoneResilienceMetrics(zone) {
+  const clamp01 = value => Math.max(0, Math.min(1, value));
+  const riskScore = 100 * (
+    clamp01((zone.ambient_temp - 25) / 15) * 0.20 +
+    clamp01((zone.lst - 25) / 25) * 0.20 +
+    clamp01((100 - zone.tree_canopy) / 100) * 0.20 +
+    clamp01(zone.building_density / 100) * 0.10 +
+    clamp01(zone.traffic_density / 5000) * 0.10 +
+    clamp01((zone.ndbi + 0.5) / 1.1) * 0.10 +
+    clamp01((0.45 - zone.albedo) / 0.40) * 0.10
+  );
+
+  const deploymentPriorityScore = Math.round(riskScore);
+  const resilienceScore = 100 - deploymentPriorityScore;
+  let priority = "Low";
+  if (deploymentPriorityScore >= 75) priority = "Critical";
+  else if (deploymentPriorityScore >= 55) priority = "High";
+  else if (deploymentPriorityScore >= 35) priority = "Medium";
+
+  const roadmap = [
+    deploymentPriorityScore >= 75 ? "Immediate pilot install and citizen communication" : "Deploy a focused heat-risk monitoring campaign",
+    deploymentPriorityScore >= 55 ? "Prioritize surface cooling and tree canopy expansion" : "Maintain shade and reflective surface upgrades",
+    "Track post-installation temperature reduction and public comfort"
+  ];
+
+  return { resilienceScore, deploymentPriorityScore, priority, roadmap };
+}
+
+function updateZoneResiliencePanel(zone, prescription) {
+  const metrics = getZoneResilienceMetrics(zone);
+  const resilienceEl = $("zoneResilienceScore");
+  const priorityEl = $("zonePriorityRank");
+  const roadmapEl = $("zoneRoadmapList");
+  if (resilienceEl) resilienceEl.textContent = `${metrics.resilienceScore}/100 (heuristic)`;
+  if (priorityEl) priorityEl.textContent = `${metrics.priority} · ${metrics.deploymentPriorityScore}/100`;
+  if (roadmapEl) {
+    const actions = [
+      `Recommended action: ${prescription.strategy.title}`,
+      ...metrics.roadmap
+    ];
+    roadmapEl.innerHTML = actions.map(item => `<li>${item}</li>`).join("");
+  }
+}
+
+function renderMicroZoneComparisonTable() {
+  const body = $("microZoneComparisonBody");
+  if (!body) return;
+
+  const rows = MICRO_ZONES.map(zone => {
+    const prescription = evaluatePrescription(zone);
+    const metrics = getZoneResilienceMetrics(zone);
+    return {
+      zone,
+      prescription,
+      metrics
+    };
+  }).sort((a, b) =>
+    b.metrics.deploymentPriorityScore - a.metrics.deploymentPriorityScore ||
+    a.zone.name.localeCompare(b.zone.name)
+  );
+
+  body.innerHTML = rows.map(({ zone, prescription, metrics }, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td><strong>${zone.name}</strong></td>
+      <td><span class="badge badge-${zone.severity.toLowerCase()}">${zone.severity}</span></td>
+      <td>${metrics.resilienceScore}/100</td>
+      <td>${metrics.deploymentPriorityScore}/100 · ${metrics.priority}</td>
+      <td>${prescription.strategy.title}</td>
+    </tr>
+  `).join("");
 }
 
 // --- WHAT-IF SCENARIO SIMULATOR ---
@@ -905,7 +980,7 @@ function applyPacket(packet) {
 
   const buzzer = Boolean(packet.buzzer);
   $("buzzerState").classList.toggle("on", buzzer);
-  $("buzzerText").textContent = buzzer ? "ACTIVE ALARM" : "OFF";
+  $("buzzerText").textContent = buzzer ? "TRIGGERED" : "OFF";
 
   $("packetCount").textContent = `${state.packets.length} telemetry packet${state.packets.length === 1 ? '' : 's'} received`;
   $("lastUpdated").textContent = `Updated ${new Date(packet.timestamp || Date.now()).toLocaleTimeString()}`;
