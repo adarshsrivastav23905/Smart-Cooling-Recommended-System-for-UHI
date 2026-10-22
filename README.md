@@ -159,10 +159,19 @@ gcc -std=c99 -Wall -Wextra simulation/virtual_uhi.c esp32_firmware/src/uhi_engin
 
 ## 📊 Interactive GIS Dashboard
 
-Open `dashboard/index.html` directly in any modern browser:
+Start the local dashboard and planner service (no API key required):
+
+```powershell
+python dashboard/server.py
+```
+
+Open `http://localhost:8000` in Chrome or Edge; do not open the HTML file directly when using the planner. Without an API key, the planner works in local rules-based mode and provides zone-specific guidance, not general AI answers. To enable OpenAI responses, set `OPENAI_API_KEY` in the server's environment before starting it; optionally set `OPENAI_MODEL` to choose an available model. Requests are sent to OpenAI and may incur API charges. The key remains in the server environment and is never sent to the browser. The live-weather stream polls Open-Meteo current conditions for the selected micro-zone at intervals of at least 60 seconds. For actual on-site readings, connect the ESP32 over USB, select **ESP32 Web Serial**, and grant the browser serial-port permission. The map's zone profiles are reference values; the weather feed does not measure each zone or provide land-surface temperature.
+
+Choose the project location once from the shared selector below the header, or click a zone marker on the map. The same selection updates the zone details, scenario simulator, virtual telemetry context, live-weather query coordinates, and cooling planner. The choice is saved in the browser for the next visit. The action-plan export intentionally includes all configured zones.
+
 - **Tab 1: GIS Heatmap & Micro-Zones**: Click any zone to view parcel diagnostics and prescription.
 - **Tab 2: What-If Scenario Simulator**: Adjust sliders to simulate canopy expansion, albedo coating, green roofs, and permeable pavements, observing real-time $\Delta T$, budget, and carbon offset.
-- **Tab 3: Live IoT Edge Stream**: Choose Live Open-Meteo Weather API stream, Virtual C stream, or ESP32 Web Serial.
+- **Tab 3: Live IoT Edge Stream**: Choose current Open-Meteo weather, Virtual C stream, or ESP32 Web Serial. Weather feed readings are live API values; virtual stream readings are simulated.
 - **Tab 4: 5-Cooling Intervention Catalog**: Browse detailed technical specifications.
 - **Export Button**: Download complete Municipal Action Plan JSON with a single click.
 

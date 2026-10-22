@@ -35,11 +35,18 @@
       </div>
     </header>
 
+    <section class="location-toolbar" aria-label="Shared project location">
+      <label for="selectedZoneSelect">Project location</label>
+      <select id="selectedZoneSelect" class="form-select"></select>
+      <span>This selection is shared by the map, simulator, telemetry, and planner.</span>
+    </section>
+
     <!-- Navigation Tabs -->
     <nav class="nav-tabs" aria-label="Main Navigation">
       <button class="tab-btn active" data-tab="tab-gis">🗺️ GIS Heatmap & Micro-Zones</button>
       <button class="tab-btn" data-tab="tab-scenario">🔬 What-If Scenario Simulator</button>
       <button class="tab-btn" data-tab="tab-telemetry">📟 Live IoT Edge Stream</button>
+      <button class="tab-btn" data-tab="tab-ai">✨ Cooling Planner</button>
       <button class="tab-btn" data-tab="tab-catalog">🌿 5-Cooling Intervention Catalog</button>
     </nav>
 
@@ -51,10 +58,10 @@
           <div class="card-header">
             <div>
               <span class="card-tag">SPATIAL THERMAL ANALYSIS</span>
-              <h2>Bengaluru Urban Micro-Zone Heatmap</h2>
+              <h2>Bengaluru Micro-Zone Reference Profiles</h2>
             </div>
             <div style="display:flex; align-items:center; gap:14px;">
-              <button class="btn btn-sm btn-secondary" id="syncLiveWeatherBtn">🔄 Sync Live Weather</button>
+              <button class="btn btn-sm btn-secondary" id="syncLiveWeatherBtn">🔄 Refresh Bengaluru Weather</button>
               <div class="map-legend">
                 <span class="legend-item"><i class="dot dot-low"></i> Low (&lt;30°C)</span>
                 <span class="legend-item"><i class="dot dot-mod"></i> Moderate (30-36°C)</span>
@@ -63,6 +70,7 @@
             </div>
           </div>
           <div id="gisMap" class="gis-map-canvas"></div>
+          <p class="card-tag">Choose a location above or click a map marker. The same location is used by the simulator, telemetry, and planner.</p>
         </div>
 
         <!-- Zone Detail & Prescriptive Prescription -->
@@ -142,14 +150,8 @@
             <div>
               <span class="card-tag">DECISION SUPPORT SYSTEM</span>
               <h2>What-If Intervention Simulator</h2>
+              <p id="scenarioLocationLabel">Using selected project location</p>
             </div>
-            <select id="scenarioZoneSelect" class="form-select">
-              <option value="MZ_004">Majestic Intermodal Transit Concourse (High Heat)</option>
-              <option value="MZ_005">Peenya Industrial Manufacturing Belt (High Heat)</option>
-              <option value="MZ_003">Indiranagar 100ft Road Corridor (Moderate Heat)</option>
-              <option value="MZ_002">Whitefield ITPL Technology Park (Moderate Heat)</option>
-              <option value="MZ_001">Cubbon Park Ecological Belt (Low Heat)</option>
-            </select>
           </div>
 
           <div class="sliders-container">
@@ -272,31 +274,32 @@
           </select>
         </label>
         <label>Sampling Interval:
-          <input id="intervalInput" type="number" min="250" step="250" value="1000" class="form-input"> <span>ms</span>
+          <input id="intervalInput" type="number" min="60000" step="1000" value="60000" class="form-input"> <span>ms</span>
         </label>
         <button class="btn btn-primary" id="startButton">▶ Start Stream</button>
         <button class="btn btn-secondary" id="connectButton" hidden>🔌 Connect ESP32</button>
         <button class="btn btn-danger" id="stopButton">⏹ Stop</button>
         <span class="packet-counter" id="packetCount">0 telemetry packets received</span>
       </div>
+      <p class="card-tag">Open-Meteo reports current modeled weather at the selected location. For on-site readings, connect the ESP32 over USB serial. The weather feed does not provide land-surface temperature.</p>
 
       <div class="telemetry-hero-grid">
         <div class="card telemetry-card">
-          <span class="card-tag">SENSING NODE TELEMETRY</span>
+          <span class="card-tag">LIVE WEATHER OR ESP32 SENSOR TELEMETRY</span>
           <div class="main-stat"><span id="temperatureValue">--.-</span><small>°C</small></div>
           <div class="reading-row"><span>Relative Humidity</span><strong id="humidityValue">--.- %</strong></div>
-          <div class="reading-row"><span>Radiometric LST</span><strong id="lstValue">--.- °C</strong></div>
-          <div class="reading-row"><span>Computed Heat Index</span><strong id="heatIndexValue">--.- °C</strong></div>
+          <div class="reading-row"><span>Radiometric LST (sensor only)</span><strong id="lstValue">--.- °C</strong></div>
+          <div class="reading-row"><span>Apparent / heat index</span><strong id="heatIndexValue">--.- °C</strong></div>
           <div class="reading-row"><span>Node Uptime</span><strong id="uptimeValue">-- s</strong></div>
         </div>
 
         <div class="card alert-card" id="severityPanel">
-          <span class="card-tag">THERMAL STRESS CLASSIFIER</span>
+          <span class="card-tag">THERMAL SEVERITY ASSESSMENT</span>
           <div class="alert-status" id="severityValue">STANDBY</div>
           <p id="severityDetail">Start the virtual stream or connect an ESP32 edge node to evaluate live thermal conditions.</p>
           <div class="meter-bar"><span id="severityMeter"></span></div>
           <div class="rf-meta-row">
-            <span>RF Model Class: <b id="rfClassValue">--</b></span>
+            <span>Assessment type: <b id="rfClassValue">--</b></span>
             <span>Confidence: <b id="rfConfValue">--%</b></span>
           </div>
         </div>
@@ -356,7 +359,25 @@
       </div>
     </section>
 
-    <!-- TAB 4: 5-COOLING INTERVENTIONS CATALOG -->
+    <!-- TAB 4: AI COOLING PLANNER -->
+    <section class="tab-content" id="tab-ai">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="card-tag">PLANNER · <span id="aiModelName">Checking service…</span></span>
+            <h2>Cooling Planner</h2>
+            <p id="aiConnectionStatus">Checking local AI service…</p>
+          </div>
+        </div>
+        <p>Ask for a cooling plan for the selected micro-zone. With an OpenAI key configured, the planner sends your question and project context to the selected model. Otherwise, it uses local rules to suggest a zone priority. All zone profiles and cooling impacts are estimates and require field validation.</p>
+        <label for="aiQuestion">Your planning question</label>
+        <textarea id="aiQuestion" class="form-input" rows="3" maxlength="1200">Suggest a practical cooling priority for this zone. Explain why it fits and what should be measured before implementation.</textarea>
+        <button class="btn btn-primary" id="askAiButton">Get a cooling plan</button>
+        <div id="aiAnswer" class="ai-answer" aria-live="polite">The planner response will appear here.</div>
+      </div>
+    </section>
+
+    <!-- TAB 5: 5-COOLING INTERVENTIONS CATALOG -->
     <section class="tab-content" id="tab-catalog">
       <div class="card-header">
         <div>

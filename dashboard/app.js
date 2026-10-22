@@ -229,9 +229,19 @@ const INTERVENTIONS_CATALOG = {
 };
 
 // Global App State
+const SELECTED_ZONE_STORAGE_KEY = "uhi-selected-zone";
+function getInitialZone() {
+  try {
+    const savedZoneId = localStorage.getItem(SELECTED_ZONE_STORAGE_KEY);
+    return MICRO_ZONES.find(zone => zone.id === savedZoneId) || MICRO_ZONES[3];
+  } catch (_) {
+    return MICRO_ZONES[3];
+  }
+}
+
 const state = {
   activeTab: "tab-gis",
-  selectedZone: MICRO_ZONES[3], // Default to Majestic
+  selectedZone: getInitialZone(),
   map: null,
   markers: [],
   running: false,
@@ -242,12 +252,12 @@ const state = {
   virtualPacket: 0,
   virtualPhase: 0,
   liveWeather: {
-    temperature: 28.5,
-    humidity: 58.0,
-    apparent_temp: 29.5,
-    radiation: 420.0,
-    wind_speed: 12.0,
-    timestamp: new Date()
+    temperature: null,
+    humidity: null,
+    apparent_temp: null,
+    radiation: null,
+    wind_speed: null,
+    timestamp: null
   }
 };
 
@@ -255,65 +265,49 @@ const $ = (id) => document.getElementById(id);
 
 // --- FETCH LIVE WEATHER FROM OPEN-METEO API ---
 async function fetchLiveWeather() {
-  const url = "https://api.open-meteo.com/v1/forecast?latitude=12.9716&longitude=77.5946&current=temperature_2m,relative_humidity_2m,apparent_temperature,direct_radiation,wind_speed_10m,surface_pressure&timezone=auto";
+  const zone = state.selectedZone;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${zone.lat}&longitude=${zone.lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,direct_radiation,wind_speed_10m,surface_pressure&timezone=auto`;
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Weather API Error: ${response.status}`);
     const data = await response.json();
 
     if (data && data.current) {
+      if (zone.id !== state.selectedZone.id) return false;
       state.liveWeather = {
         temperature: Number(data.current.temperature_2m),
         humidity: Number(data.current.relative_humidity_2m),
         apparent_temp: Number(data.current.apparent_temperature),
-        radiation: Number(data.current.direct_radiation || 350.0),
-        wind_speed: Number(data.current.wind_speed_10m || 10.0),
-        timestamp: new Date()
+        radiation: Number(data.current.direct_radiation),
+        wind_speed: Number(data.current.wind_speed_10m),
+        timestamp: data.current.time ? new Date(data.current.time) : new Date()
       };
 
-      const weatherText = `${state.liveWeather.temperature.toFixed(1)}°C | ${state.liveWeather.humidity.toFixed(0)}% RH | Bengaluru`;
+      const weatherText = `${state.liveWeather.temperature.toFixed(1)}°C | ${state.liveWeather.humidity.toFixed(0)}% RH | ${zone.name}`;
       $("liveWeatherText").textContent = weatherText;
       $("liveWeatherPill").title = `Direct Solar Radiation: ${state.liveWeather.radiation} W/m² | Wind: ${state.liveWeather.wind_speed} km/h`;
+      return true;
     }
+    throw new Error("Weather API returned no current observation");
   } catch (err) {
-    console.warn("Using offline meteorological fallback:", err);
-    $("liveWeatherText").textContent = `${state.liveWeather.temperature.toFixed(1)}°C | ${state.liveWeather.humidity.toFixed(0)}% RH | Bengaluru (Cached)`;
+    console.warn("Live weather request failed:", err);
+    $("liveWeatherText").textContent = "Live weather unavailable";
+    $("liveWeatherPill").title = "No live observation received. Check the network and try again.";
+    return false;
   }
 }
 
-// --- SYNC ALL MICRO-ZONES WITH LIVE WEATHER ---
-function syncMicroZonesWithLiveWeather() {
-  const baseTemp = state.liveWeather.temperature;
-  const baseHum = state.liveWeather.humidity;
-  const solarFactor = Math.min(1.5, Math.max(0.6, state.liveWeather.radiation / 400.0));
-
-  MICRO_ZONES.forEach(zone => {
-    zone.ambient_temp = Math.round((baseTemp + zone.temp_offset) * 10) / 10;
-    zone.humidity = Math.max(10, Math.min(95, Math.round(baseHum - (zone.temp_offset * 1.5))));
-    zone.lst = Math.round((zone.ambient_temp + (zone.lst_offset * solarFactor)) * 10) / 10;
-
-    // Recalculate Severity
-    if (zone.lst >= 40.0 || zone.ambient_temp >= 36.5) {
-      zone.severity = "HIGH";
-    } else if (zone.lst >= 32.0 || zone.ambient_temp >= 30.5) {
-      zone.severity = "MODERATE";
-    } else {
-      zone.severity = "LOW";
-    }
+function initLocationSelector() {
+  const selector = $("selectedZoneSelect");
+  selector.innerHTML = MICRO_ZONES.map(zone =>
+    `<option value="${zone.id}">${zone.name}</option>`
+  ).join("");
+  selector.value = state.selectedZone.id;
+  selector.addEventListener("change", () => {
+    const zone = MICRO_ZONES.find(item => item.id === selector.value);
+    if (!zone) return;
+    selectMicroZone(zone);
   });
-
-  // Re-render GIS map markers
-  if (state.markers && state.markers.length) {
-    state.markers.forEach((marker, idx) => {
-      const zone = MICRO_ZONES[idx];
-      const color = zone.severity === "HIGH" ? "#f43f5e" : zone.severity === "MODERATE" ? "#f59e0b" : "#10b981";
-      marker.setStyle({ fillColor: color });
-      marker.setTooltipContent(`<b>${zone.name}</b><br>Live Air: ${zone.ambient_temp}°C | Live LST: ${zone.lst}°C<br>Status: ${zone.severity}`);
-    });
-  }
-
-  selectMicroZone(state.selectedZone);
-  updateScenarioSimulation();
 }
 
 // --- TAB SWITCHING ---
@@ -349,9 +343,9 @@ function initGisMap() {
     zoomControl: true
   });
 
-  // Dark CartoDB Tile Layer for rich aesthetics
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; <a href="https://carto.com/">CartoDB</a> OpenStreetMap contributors',
+  // Esri's street map avoids the blocked OpenStreetMap tiles in this environment.
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri",
     maxZoom: 19
   }).addTo(state.map);
 
@@ -368,7 +362,7 @@ function initGisMap() {
       fillOpacity: 0.75
     }).addTo(state.map);
 
-    circle.bindTooltip(`<b>${zone.name}</b><br>Live Air: ${zone.ambient_temp}°C | Live LST: ${zone.lst}°C<br>Status: ${zone.severity}`, {
+    circle.bindTooltip(`<b>${zone.name}</b><br>Reference air: ${zone.ambient_temp}°C | Reference surface: ${zone.lst}°C<br>Status: ${zone.severity}`, {
       direction: 'top',
       className: 'map-tooltip'
     });
@@ -384,17 +378,35 @@ function initGisMap() {
   if (syncBtn) {
     syncBtn.addEventListener("click", async () => {
       syncBtn.textContent = "⏳ Syncing...";
-      await fetchLiveWeather();
-      syncMicroZonesWithLiveWeather();
-      syncBtn.textContent = "✅ Synced Live";
-      setTimeout(() => { syncBtn.textContent = "🔄 Sync Live Weather"; }, 2000);
+      const ok = await fetchLiveWeather();
+      syncBtn.textContent = ok ? "✅ Weather Updated" : "⚠ Retry Weather";
+      setTimeout(() => { syncBtn.textContent = "🔄 Refresh Bengaluru Weather"; }, 2000);
     });
   }
 }
 
 // --- MICRO-ZONE SELECTION & PRESCRIPTION CALCULATION ---
 function selectMicroZone(zone) {
+  const zoneChanged = state.selectedZone.id !== zone.id;
   state.selectedZone = zone;
+  if (zoneChanged) resetTelemetryForLocation(zone);
+  const selector = $("selectedZoneSelect");
+  if (selector) selector.value = zone.id;
+  try {
+    localStorage.setItem(SELECTED_ZONE_STORAGE_KEY, zone.id);
+  } catch (_) {
+    // Location selection still works for this page when storage is unavailable.
+  }
+
+  state.markers.forEach((marker, index) => {
+    const markerZone = MICRO_ZONES[index];
+    const color = markerZone.severity === "HIGH" ? "#f43f5e" : markerZone.severity === "MODERATE" ? "#f59e0b" : "#10b981";
+    marker.setStyle({
+      color: markerZone.id === zone.id ? "#06b6d4" : "#ffffff",
+      weight: markerZone.id === zone.id ? 4 : 2,
+      fillColor: color
+    });
+  });
 
   $("zoneTitle").textContent = zone.name;
   $("zoneLst").textContent = `${zone.lst.toFixed(1)} °C`;
@@ -403,6 +415,8 @@ function selectMicroZone(zone) {
   $("zoneNdbi").textContent = zone.ndbi.toFixed(2);
   $("zoneBuilt").textContent = `${zone.building_density.toFixed(0)} %`;
   $("zoneCanopy").textContent = `${zone.tree_canopy.toFixed(0)} %`;
+  const scenarioLocation = $("scenarioLocationLabel");
+  if (scenarioLocation) scenarioLocation.textContent = `Using ${zone.name}`;
 
   const badge = $("zoneSeverityBadge");
   badge.textContent = zone.severity;
@@ -418,6 +432,26 @@ function selectMicroZone(zone) {
   $("zoneCost").textContent = `₹ ${prescription.strategy.costPerSqm} / m²`;
   $("zoneWeeks").textContent = `${prescription.strategy.weeks} Weeks`;
   $("zoneRationale").innerHTML = `<strong>Context Rationale:</strong> ${prescription.rationale}`;
+  if ($("sliderCanopy")) updateScenarioSimulation();
+
+  if (zoneChanged) {
+    const sourceSelect = $("sourceSelect");
+    if (sourceSelect?.value === "live_api" && state.running) {
+      setConnection(`Live Open-Meteo · ${zone.name}`, true);
+      tickLiveApiStream();
+    } else {
+      if (state.running && sourceSelect?.value === "virtual") {
+        setConnection(`Virtual C Stream Active · ${zone.name}`, true);
+      } else if (sourceSelect?.value === "virtual") {
+        setConnection(`Virtual C Standby · ${zone.name}`, false);
+      } else if (sourceSelect?.value === "serial") {
+        setConnection(state.serialPort ? `ESP32 Connected · ${zone.name}` : `ESP32 ready · ${zone.name}`, Boolean(state.serialPort));
+      } else {
+        setConnection(`Live weather ready · ${zone.name}`, false);
+      }
+      fetchLiveWeather();
+    }
+  }
 }
 
 function evaluatePrescription(zone) {
@@ -458,17 +492,11 @@ function initScenarioSimulator() {
     if (el) el.addEventListener("input", updateScenarioSimulation);
   });
 
-  const zoneSelect = $("scenarioZoneSelect");
-  if (zoneSelect) {
-    zoneSelect.addEventListener("change", updateScenarioSimulation);
-  }
-
   updateScenarioSimulation();
 }
 
 function updateScenarioSimulation() {
-  const zoneId = $("scenarioZoneSelect").value;
-  const baseline = MICRO_ZONES.find(z => z.id === zoneId) || MICRO_ZONES[3];
+  const baseline = state.selectedZone;
 
   const canopy = Number($("sliderCanopy").value);
   const albedo = Number($("sliderAlbedo").value);
@@ -580,11 +608,15 @@ function initTelemetry() {
     intervalInput.disabled = isSerial;
 
     if (val === "live_api") {
+      intervalInput.min = "60000";
+      intervalInput.value = "60000";
       setConnection("Live Bengaluru Open-Meteo Feed Ready", false);
     } else if (isSerial) {
       setConnection("ESP32 ready to connect", false);
     } else {
-      setConnection("Virtual C Standby", false);
+      intervalInput.min = "250";
+      intervalInput.value = "1000";
+      setConnection(`Virtual C Standby · ${state.selectedZone.name}`, false);
     }
   });
 
@@ -601,6 +633,90 @@ function initTelemetry() {
   $("clearButton").addEventListener("click", () => { state.packets = []; renderPacketTable(); });
 }
 
+// --- OPENAI-POWERED COOLING PLANNER ---
+async function initAiPlanner() {
+  const status = $("aiConnectionStatus");
+  const modelName = $("aiModelName");
+  const askButton = $("askAiButton");
+  try {
+    const health = await fetch("/api/health", { cache: "no-store" });
+    const data = await health.json();
+    modelName.textContent = data.model || "configured model";
+    status.textContent = data.mode === "openai"
+      ? "OpenAI planner ready. Each request sends project context to the configured model."
+      : "Offline rules-based planner ready. No OpenAI key is configured; responses are recommendations from local rules, not AI-generated answers.";
+    askButton.disabled = !data.ready;
+  } catch (_) {
+    modelName.textContent = "not connected";
+    status.textContent = "Start dashboard/server.py to connect the local AI service.";
+    askButton.disabled = true;
+  }
+
+  askButton.addEventListener("click", askAiPlanner);
+}
+
+async function askAiPlanner() {
+  const button = $("askAiButton");
+  const answer = $("aiAnswer");
+  const zone = state.selectedZone || null;
+  const latest = state.packets[0] || null;
+  const context = {
+    selected_zone: zone ? {
+      id: zone.id,
+      name: zone.name,
+      type: zone.type,
+      coordinates: { latitude: zone.lat, longitude: zone.lng },
+      reference_profile: {
+        ambient_temperature_c: zone.ambient_temp,
+        land_surface_temperature_c: zone.lst,
+        relative_humidity_pct: zone.humidity,
+        ndvi: zone.ndvi,
+        ndbi: zone.ndbi,
+        albedo: zone.albedo,
+        building_density_pct: zone.building_density,
+        tree_canopy_pct: zone.tree_canopy,
+        traffic_density: zone.traffic_density,
+        severity: zone.severity
+      }
+    } : null,
+    latest_reading: latest ? {
+      source: latest.source_label || latest.node_id || "unknown",
+      timestamp: latest.timestamp || null,
+      ambient_temperature_c: latest.ambient_temp_c,
+      relative_humidity_pct: latest.relative_humidity_pct,
+      apparent_temperature_or_heat_index_c: latest.heat_index_c ?? null,
+      land_surface_temperature_c: latest.lst_c ?? null,
+      severity: latest.severity || null
+    } : null,
+    interventions: Object.values(INTERVENTIONS_CATALOG).map(item => ({
+      name: item.title,
+      estimated_cooling_range_c: [item.baseDropMin, item.baseDropMax],
+      indicative_cost_inr_per_m2: item.costPerSqm,
+      target_surfaces: item.targets
+    }))
+  };
+
+  button.disabled = true;
+  button.textContent = "Thinking…";
+  answer.textContent = "Preparing a plan from the selected zone and latest available reading…";
+  try {
+    const response = await fetch("/api/ai-recommendation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: $("aiQuestion").value, context })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `AI request failed (${response.status})`);
+    const source = result.mode === "local" ? "Planner: local rules (offline)" : `Model: ${result.model}`;
+    answer.textContent = `${result.answer}\n\n${source}`;
+  } catch (error) {
+    answer.textContent = `Could not get a plan: ${error.message}`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Get a cooling plan";
+  }
+}
+
 function setConnection(text, connected) {
   $("connectionText").textContent = text;
   $("connectionPill").classList.toggle("connected", connected);
@@ -611,50 +727,43 @@ function startLiveApiStream() {
   stopStream();
   state.running = true;
   state.virtualPacket = 0;
-  setConnection("Live Open-Meteo Bengaluru Stream Active", true);
+  setConnection(`Live Open-Meteo · ${state.selectedZone.name}`, true);
   tickLiveApiStream();
-  const interval = Math.max(1000, Number($("intervalInput").value) || 3000);
+  const interval = Math.max(60000, Number($("intervalInput").value) || 60000);
   state.timer = setInterval(tickLiveApiStream, interval);
 }
 
 async function tickLiveApiStream() {
+  const ok = await fetchLiveWeather();
+  if (!ok) {
+    setConnection("Live weather unavailable — retrying", false);
+    return;
+  }
   state.virtualPacket += 1;
-  await fetchLiveWeather();
-  syncMicroZonesWithLiveWeather();
-
-  const selectedZone = state.selectedZone || MICRO_ZONES[3];
-  // Micro-variation jitter for natural sensor simulation
-  const noise = (Math.random() - 0.5) * 0.4;
-  const temp = selectedZone.ambient_temp + noise;
-  const hum = selectedZone.humidity + (Math.random() - 0.5) * 0.8;
-  const lst = selectedZone.lst + (Math.random() - 0.5) * 0.6;
-  const heatIndex = temp + (hum * 0.1);
-
-  const rfClass = temp >= 36.5 || heatIndex >= 38.0 ? "HIGH" : temp >= 31.0 || heatIndex >= 33.0 ? "MODERATE" : "LOW";
-  const confidence = 0.88 + 0.10 * Math.random();
-
-  const rec = rfClass === "HIGH" ? "COOL_ROOF_ALBEDO" : rfClass === "MODERATE" ? "URBAN_FORESTRY_CANOPY" : "NONE";
-  const drop = rfClass === "HIGH" ? 3.2 : rfClass === "MODERATE" ? 2.4 : 0.0;
+  const temp = state.liveWeather.temperature;
+  const hum = state.liveWeather.humidity;
+  const rfClass = temp >= 36.5 ? "HIGH" : temp >= 31.0 ? "MODERATE" : "LOW";
 
   applyPacket({
     packet_id: state.virtualPacket,
     node_id: "LIVE_BENGALURU_OPENMETEO",
+    timestamp: state.liveWeather.timestamp.toISOString(),
     ambient_temp_c: temp,
     relative_humidity_pct: hum,
-    lst_c: lst,
-    heat_index_c: heatIndex,
+    lst_c: null,
+    heat_index_c: state.liveWeather.apparent_temp,
     severity: rfClass,
-    rf_class: rfClass,
-    rf_confidence: confidence,
-    thermal_stress_index: 45.0 + (lst - 30.0) * 2.0,
-    expected_drop_c: drop,
-    hvac_savings_pct: drop * 2.2,
-    recommendation: rec,
-    green_led: rfClass === "LOW",
-    yellow_led: rfClass === "MODERATE",
-    red_led: rfClass === "HIGH",
-    buzzer: temp >= 38.0,
-    uptime_ms: state.virtualPacket * 1000
+    rf_class: null,
+    rf_confidence: null,
+    recommendation: null,
+    zone_id: state.selectedZone.id,
+    zone_name: state.selectedZone.name,
+    source_label: `Open-Meteo current weather at ${state.selectedZone.name}; severity is a simple air-temperature tier`,
+    green_led: false,
+    yellow_led: false,
+    red_led: false,
+    buzzer: false,
+    uptime_ms: null
   });
 }
 
@@ -664,7 +773,7 @@ function startVirtualStream() {
   state.running = true;
   state.virtualPacket = 0;
   state.virtualPhase = 0;
-  setConnection("Virtual C Stream Active (1.0 Hz)", true);
+  setConnection(`Virtual C Stream Active · ${state.selectedZone.name}`, true);
   tickVirtualStream();
   state.timer = setInterval(tickVirtualStream, Math.max(250, Number($("intervalInput").value) || 1000));
 }
@@ -673,9 +782,10 @@ function tickVirtualStream() {
   state.virtualPacket += 1;
   state.virtualPhase += 0.45;
 
-  const temp = 32.0 + 4.5 * Math.sin(state.virtualPhase);
-  const hum = 58.0 - 12.0 * Math.sin(state.virtualPhase);
-  const lst = temp + 7.5 + 1.5 * Math.max(0, Math.sin(state.virtualPhase));
+  const zone = state.selectedZone;
+  const temp = zone.ambient_temp + 2.0 * Math.sin(state.virtualPhase);
+  const hum = Math.max(10, Math.min(95, zone.humidity - 8.0 * Math.sin(state.virtualPhase)));
+  const lst = zone.lst + 2.0 * Math.max(0, Math.sin(state.virtualPhase));
   const heatIndex = temp + (hum * 0.1);
 
   const rfClass = temp >= 36.5 || heatIndex >= 38.0 ? "HIGH" : temp >= 31.0 || heatIndex >= 33.0 ? "MODERATE" : "LOW";
@@ -687,6 +797,8 @@ function tickVirtualStream() {
   applyPacket({
     packet_id: state.virtualPacket,
     node_id: "VIRTUAL_UHI_NODE_C",
+    zone_id: zone.id,
+    zone_name: zone.name,
     ambient_temp_c: temp,
     relative_humidity_pct: hum,
     lst_c: lst,
@@ -702,6 +814,7 @@ function tickVirtualStream() {
     yellow_led: rfClass === "MODERATE",
     red_led: rfClass === "HIGH",
     buzzer: temp >= 38.0,
+    source_label: `Simulated virtual telemetry for ${zone.name}; not a physical sensor reading`,
     uptime_ms: state.virtualPacket * 1000
   });
 }
@@ -756,14 +869,24 @@ async function stopStream() {
 }
 
 function applyPacket(packet) {
+  if (packet.error) {
+    $("severityDetail").textContent = packet.error;
+    setConnection("Sensor reported an error", false);
+    return;
+  }
+  const temperature = Number(packet.ambient_temp_c);
+  const humidity = Number(packet.relative_humidity_pct);
+  if (!Number.isFinite(temperature) || !Number.isFinite(humidity)) return;
+  if (!packet.zone_id) packet.zone_id = state.selectedZone.id;
+  if (!packet.zone_name) packet.zone_name = state.selectedZone.name;
   state.packets.unshift(packet);
   state.packets = state.packets.slice(0, 15);
 
-  $("temperatureValue").textContent = packet.ambient_temp_c.toFixed(1);
-  $("humidityValue").textContent = `${packet.relative_humidity_pct.toFixed(1)} %`;
-  $("lstValue").textContent = packet.lst_c ? `${packet.lst_c.toFixed(1)} °C` : "--.- °C";
-  $("heatIndexValue").textContent = packet.heat_index_c ? `${packet.heat_index_c.toFixed(1)} °C` : "--.- °C";
-  $("uptimeValue").textContent = packet.uptime_ms ? `${Math.round(packet.uptime_ms / 1000)} s` : "-- s";
+  $("temperatureValue").textContent = temperature.toFixed(1);
+  $("humidityValue").textContent = `${humidity.toFixed(1)} %`;
+  $("lstValue").textContent = packet.lst_c != null && Number.isFinite(Number(packet.lst_c)) ? `${Number(packet.lst_c).toFixed(1)} °C` : "Unavailable";
+  $("heatIndexValue").textContent = packet.heat_index_c != null && Number.isFinite(Number(packet.heat_index_c)) ? `${Number(packet.heat_index_c).toFixed(1)} °C` : "Unavailable";
+  $("uptimeValue").textContent = packet.uptime_ms != null && Number.isFinite(Number(packet.uptime_ms)) ? `${Math.round(Number(packet.uptime_ms) / 1000)} s` : "N/A (weather feed)";
 
   const sev = packet.severity || "LOW";
   $("severityValue").textContent = sev;
@@ -771,8 +894,9 @@ function applyPacket(packet) {
   sevPanel.className = `card alert-card ${sev.toLowerCase()}`;
   $("severityMeter").style.width = sev === "HIGH" ? "100%" : sev === "MODERATE" ? "60%" : "25%";
 
-  $("rfClassValue").textContent = packet.rf_class || sev;
-  $("rfConfValue").textContent = packet.rf_confidence ? `${Math.round(packet.rf_confidence * 100)}%` : "--%";
+  $("rfClassValue").textContent = packet.rf_class || "Rule-based";
+  $("rfConfValue").textContent = packet.rf_confidence != null && Number.isFinite(Number(packet.rf_confidence)) ? `${Math.round(packet.rf_confidence * 100)}%` : "N/A";
+  $("severityDetail").textContent = packet.source_label || "ESP32 sensor reading assessed by the embedded C engine.";
 
   // Update LEDs
   setLed("greenLed", "greenState", packet.green_led);
@@ -784,8 +908,33 @@ function applyPacket(packet) {
   $("buzzerText").textContent = buzzer ? "ACTIVE ALARM" : "OFF";
 
   $("packetCount").textContent = `${state.packets.length} telemetry packet${state.packets.length === 1 ? '' : 's'} received`;
-  $("lastUpdated").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+  $("lastUpdated").textContent = `Updated ${new Date(packet.timestamp || Date.now()).toLocaleTimeString()}`;
 
+  renderPacketTable();
+  drawChart();
+}
+
+function resetTelemetryForLocation(zone) {
+  if (!state.packets.length) return;
+  state.packets = [];
+  $("temperatureValue").textContent = "--.-";
+  $("humidityValue").textContent = "--.- %";
+  $("lstValue").textContent = "--.- °C";
+  $("heatIndexValue").textContent = "--.- °C";
+  $("uptimeValue").textContent = "-- s";
+  $("severityValue").textContent = "STANDBY";
+  $("severityPanel").className = "card alert-card";
+  $("severityDetail").textContent = `Location changed to ${zone.name}. New readings will appear when a stream is active.`;
+  $("severityMeter").style.width = "0%";
+  $("rfClassValue").textContent = "--";
+  $("rfConfValue").textContent = "--%";
+  setLed("greenLed", "greenState", false);
+  setLed("yellowLed", "yellowState", false);
+  setLed("redLed", "redState", false);
+  $("buzzerState").classList.remove("on");
+  $("buzzerText").textContent = "OFF";
+  $("packetCount").textContent = "0 telemetry packets received";
+  $("lastUpdated").textContent = "No telemetry yet";
   renderPacketTable();
   drawChart();
 }
@@ -807,11 +956,11 @@ function renderPacketTable() {
       <td>#${p.packet_id || '--'}</td>
       <td>${p.ambient_temp_c ? p.ambient_temp_c.toFixed(1) + ' °C' : '--'}</td>
       <td>${p.relative_humidity_pct ? p.relative_humidity_pct.toFixed(1) + ' %' : '--'}</td>
-      <td>${p.lst_c ? p.lst_c.toFixed(1) + ' °C' : '--'}</td>
+      <td>${p.lst_c != null && Number.isFinite(Number(p.lst_c)) ? Number(p.lst_c).toFixed(1) + ' °C' : 'N/A'}</td>
       <td><span class="badge badge-${(p.rf_class || p.severity || 'low').toLowerCase()}">${p.rf_class || p.severity || '--'}</span></td>
       <td>${p.recommendation || '--'}</td>
-      <td><span style="color:var(--accent-emerald)">-${p.expected_drop_c ? p.expected_drop_c.toFixed(1) : '0.0'} °C</span></td>
-      <td>${new Date().toLocaleTimeString()}</td>
+      <td>${p.expected_drop_c != null ? `<span style="color:var(--accent-emerald)">-${Number(p.expected_drop_c).toFixed(1)} °C</span>` : 'N/A'}</td>
+      <td>${new Date(p.timestamp || Date.now()).toLocaleTimeString()}</td>
     </tr>
   `).join("");
 }
@@ -962,14 +1111,15 @@ function initExport() {
 // --- BOOTSTRAP ---
 document.addEventListener("DOMContentLoaded", async () => {
   initTabs();
+  initLocationSelector();
   initGisMap();
   initScenarioSimulator();
   initTelemetry();
+  initAiPlanner();
   renderCatalog();
   initExport();
   window.addEventListener("resize", drawChart);
 
   // Auto-fetch Live Bengaluru Weather on load
   await fetchLiveWeather();
-  syncMicroZonesWithLiveWeather();
 });
