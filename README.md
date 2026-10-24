@@ -7,7 +7,7 @@
 > A decision-support prototype for exploring urban heat conditions across Bengaluru micro-zones, comparing cooling interventions, and demonstrating an ESP32-based temperature and humidity telemetry path.
 
 ---
-
+     
 ## 👨‍💻 Author
 
 **Adarsh Srivastav**<br>
