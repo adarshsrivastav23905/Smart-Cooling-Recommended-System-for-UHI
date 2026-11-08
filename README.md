@@ -25,7 +25,7 @@ The **Smart Cooling Strategy Recommendation System** is a prototype that brings 
 - A C99 engine for environmental feature preprocessing, thermal-stress assessment, severity classification, recommendations, and scenario estimates.
 - ESP32 firmware intended to read air temperature and relative humidity from a DHT22 sensor and provide local OLED, LED, buzzer, and serial outputs.
 - A browser dashboard with a Bengaluru micro-zone map, what-if simulator, telemetry views, cooling planner, intervention catalog, and JSON export.
-
+  
 The system is intended to help users compare possible actions, not to replace site surveys or municipal engineering. **Zone profiles, simulated readings, intervention costs, and cooling impacts must be treated as reference values or estimates unless independently measured and validated.**
 
 ---
