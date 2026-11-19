@@ -161,7 +161,10 @@ The inputs include air temperature, relative humidity, land-surface temperature 
 - The DHT22 measures **air temperature and relative humidity**. It does not measure LST, NDVI, NDBI, albedo, canopy, traffic, or population.
 - Satellite-derived indices and land-surface temperature require separate remote-sensing data sources; they are not read by the current ESP32 firmware.
 - The dashboard's eight zone profiles are configured reference values, not eight live sensor stations.
-- Open-Meteo provides current weather for the selected coordinates. It is not a local ESP32 measurement and does not provide the dashboard's LST.
+- The diagnostic cards use Open-Meteo's current weather feed for air temperature; it is a weather-service value, not a local ESP32 measurement.
+- Satellite LST comes from NASA Terra MODIS (`MOD11A1.061`, daytime, 1 km). It is delayed by satellite acquisition and processing, may be unavailable under clouds, and is not an instantaneous reading.
+- NASA LST requires a NASA Earthdata Login. Set `NASA_EARTHDATA_USERNAME` and `NASA_EARTHDATA_PASSWORD` in the dashboard server's environment before starting it. The dashboard does not store or request these credentials.
+- MODIS values are filtered to good-quality daytime observations. The server caches successful LST results for six hours and reports missing credentials, processing failures, or unavailable clear-sky observations instead of substituting reference values.
 - The virtual stream generates simulated telemetry; it must not be presented as physical sensor output.
 - In the current firmware, LST is set to ambient temperature plus 8°C and several other features use fixed example values. These are placeholders, not remote-sensing observations.
 
@@ -277,7 +280,8 @@ Choose the project location once with the shared selector below the header, or c
 
 ### Telemetry source notes
 
-- **Open-Meteo:** live weather-service values for the selected coordinates; sampling is limited to at least 60 seconds.
+- **Open-Meteo:** current weather-service values for the selected coordinates; the diagnostic air-temperature card refreshes every 60 seconds. It is not a physical sensor observation.
+- **NASA MODIS:** the diagnostic LST card queries the latest available good-quality daytime `MOD11A1.061` pixel for the selected zone. The NASA Earthdata environment variables described above are required; satellite revisit, clouds, and processing delay mean this is not real-time.
 - **Virtual C-style Stream:** simulated browser-generated readings based on the selected profile.
 - **ESP32 Web Serial:** serial JSON packets from connected hardware, requiring browser serial support, a USB connection, and user permission.
 

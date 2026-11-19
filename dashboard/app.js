@@ -257,8 +257,11 @@ const state = {
     apparent_temp: null,
     radiation: null,
     wind_speed: null,
-    timestamp: null
-  }
+    timestamp: null,
+    zoneId: null
+  },
+  liveSatelliteLST: null,
+  lstRequestId: 0
 };
 
 const $ = (id) => document.getElementById(id);
@@ -272,7 +275,7 @@ async function fetchLiveWeather() {
     if (!response.ok) throw new Error(`Weather API Error: ${response.status}`);
     const data = await response.json();
 
-    if (data && data.current) {
+    if (data && data.current && Number.isFinite(Number(data.current.temperature_2m))) {
       if (zone.id !== state.selectedZone.id) return false;
       state.liveWeather = {
         temperature: Number(data.current.temperature_2m),
@@ -280,19 +283,77 @@ async function fetchLiveWeather() {
         apparent_temp: Number(data.current.apparent_temperature),
         radiation: Number(data.current.direct_radiation),
         wind_speed: Number(data.current.wind_speed_10m),
-        timestamp: data.current.time ? new Date(data.current.time) : new Date()
+        timestamp: data.current.time ? new Date(data.current.time) : new Date(),
+        zoneId: zone.id
       };
 
       const weatherText = `${state.liveWeather.temperature.toFixed(1)}°C | ${state.liveWeather.humidity.toFixed(0)}% RH | ${zone.name}`;
       $("liveWeatherText").textContent = weatherText;
       $("liveWeatherPill").title = `Direct Solar Radiation: ${state.liveWeather.radiation} W/m² | Wind: ${state.liveWeather.wind_speed} km/h`;
+      renderLiveTemperatureCards();
       return true;
     }
     throw new Error("Weather API returned no current observation");
   } catch (err) {
     console.warn("Live weather request failed:", err);
-    $("liveWeatherText").textContent = "Live weather unavailable";
-    $("liveWeatherPill").title = "No live observation received. Check the network and try again.";
+    if (zone.id === state.selectedZone.id) {
+      state.liveWeather.zoneId = null;
+      renderLiveTemperatureCards();
+      $("liveWeatherText").textContent = "Live weather unavailable";
+      $("liveWeatherPill").title = "No live observation received. Check the network and try again.";
+    }
+    return false;
+  }
+}
+
+function renderLiveTemperatureCards() {
+  const airIsCurrent = state.liveWeather.zoneId === state.selectedZone.id
+    && Number.isFinite(state.liveWeather.temperature);
+  $("zoneAirTemp").textContent = airIsCurrent
+    ? `${state.liveWeather.temperature.toFixed(1)} °C`
+    : "Unavailable";
+
+  const lst = state.liveSatelliteLST;
+  const lstIsCurrent = lst && lst.zoneId === state.selectedZone.id;
+  $("zoneLst").textContent = lstIsCurrent && Number.isFinite(lst.lst_c)
+    ? `${lst.lst_c.toFixed(1)} °C`
+    : "Unavailable";
+  $("zoneLst").title = lstIsCurrent ? `${lst.source}; observation date: ${lst.observed_at}` : "";
+}
+
+async function fetchLiveSatelliteLST(zone) {
+  const requestId = ++state.lstRequestId;
+  state.liveSatelliteLST = null;
+  renderLiveTemperatureCards();
+  $("liveTemperatureStatus").textContent = "Requesting NASA Terra MODIS daytime LST; recent clear-sky satellite data may be delayed.";
+
+  try {
+    const url = `/api/v1/live-lst?zone_id=${encodeURIComponent(zone.id)}`;
+    for (let attempt = 0; attempt < 61; attempt += 1) {
+      if (requestId !== state.lstRequestId || zone.id !== state.selectedZone.id) return false;
+      const response = await fetch(url, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok && response.status !== 202) {
+        throw new Error(result.error || `NASA LST request failed (${response.status})`);
+      }
+      if (response.status === 202 || result.status === "processing") {
+        $("liveTemperatureStatus").textContent = result.message || "NASA satellite LST is processing.";
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
+      }
+
+      state.liveSatelliteLST = { ...result, zoneId: zone.id };
+      renderLiveTemperatureCards();
+      $("liveTemperatureStatus").textContent =
+        `${result.source} · ${result.observed_at} · approx. 1 km, clear-sky daytime observation. Air temperature is from Open-Meteo, not a local sensor.`;
+      return true;
+    }
+    throw new Error("NASA satellite LST is taking longer than expected. Select the location again to retry.");
+  } catch (error) {
+    if (requestId === state.lstRequestId && zone.id === state.selectedZone.id) {
+      $("liveTemperatureStatus").textContent = error.message;
+      renderLiveTemperatureCards();
+    }
     return false;
   }
 }
@@ -409,8 +470,11 @@ function selectMicroZone(zone) {
   });
 
   $("zoneTitle").textContent = zone.name;
-  $("zoneLst").textContent = `${zone.lst.toFixed(1)} °C`;
-  $("zoneAirTemp").textContent = `${zone.ambient_temp.toFixed(1)} °C`;
+  if (zoneChanged) {
+    state.liveWeather.zoneId = null;
+    state.liveSatelliteLST = null;
+    renderLiveTemperatureCards();
+  }
   $("zoneNdvi").textContent = zone.ndvi.toFixed(2);
   $("zoneNdbi").textContent = zone.ndbi.toFixed(2);
   $("zoneBuilt").textContent = `${zone.building_density.toFixed(0)} %`;
@@ -437,6 +501,7 @@ function selectMicroZone(zone) {
   if ($("sliderCanopy")) updateScenarioSimulation();
 
   if (zoneChanged) {
+    fetchLiveSatelliteLST(zone);
     const sourceSelect = $("sourceSelect");
     if (sourceSelect?.value === "live_api" && state.running) {
       setConnection(`Live Open-Meteo · ${zone.name}`, true);
@@ -1142,6 +1207,16 @@ function initExport() {
       export_type: "Municipal Heat Mitigation & Intervention Action Plan",
       export_timestamp: new Date().toISOString(),
       live_meteorological_baseline: state.liveWeather,
+      selected_zone_live_temperature_observations: {
+        zone_id: state.selectedZone.id,
+        air_temperature_c: state.liveWeather.zoneId === state.selectedZone.id
+          ? state.liveWeather.temperature
+          : null,
+        air_temperature_source: "Open-Meteo current weather feed",
+        satellite_lst: state.liveSatelliteLST?.zoneId === state.selectedZone.id
+          ? state.liveSatelliteLST
+          : null
+      },
       micro_zone_assessments: MICRO_ZONES.map(zone => {
         const evalRes = evaluatePrescription(zone);
         return {
@@ -1149,6 +1224,7 @@ function initExport() {
           zone_name: zone.name,
           type: zone.type,
           coordinates: { lat: zone.lat, lng: zone.lng },
+          thermal_parameters_source: "Configured reference profile; not current observations",
           thermal_parameters: {
             lst_c: zone.lst,
             ambient_air_temp_c: zone.ambient_temp,
@@ -1195,6 +1271,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   initExport();
   window.addEventListener("resize", drawChart);
 
-  // Auto-fetch Live Bengaluru Weather on load
-  await fetchLiveWeather();
+  // Load the weather feed and the satellite request independently.
+  fetchLiveWeather();
+  fetchLiveSatelliteLST(state.selectedZone);
+  setInterval(fetchLiveWeather, 60000);
 });

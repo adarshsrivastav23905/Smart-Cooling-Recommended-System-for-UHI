@@ -85,11 +85,11 @@
 
           <div class="zone-metrics-grid">
             <div class="metric-box">
-              <span class="label">Land Surface Temp (LST)</span>
+              <span class="label">Satellite LST (NASA MODIS)</span>
               <strong class="val" id="zoneLst">--.- °C</strong>
             </div>
             <div class="metric-box">
-              <span class="label">Ambient Dry-Bulb Air</span>
+              <span class="label">Live Air Temp (Open-Meteo)</span>
               <strong class="val" id="zoneAirTemp">--.- °C</strong>
             </div>
             <div class="metric-box">
@@ -109,6 +109,9 @@
               <strong class="val" id="zoneCanopy">-- %</strong>
             </div>
           </div>
+          <p class="temperature-source-status" id="liveTemperatureStatus" role="status">
+            Air temperature comes from Open-Meteo; satellite LST requires NASA Earthdata credentials and a clear-sky observation.
+          </p>
 
           <!-- Prescription Card -->
           <div class="prescription-box">

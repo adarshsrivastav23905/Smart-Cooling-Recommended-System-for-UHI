@@ -1,7 +1,9 @@
 import json
+import os
 import threading
 import unittest
 from http.server import HTTPServer
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -65,6 +67,26 @@ class DashboardApiTests(unittest.TestCase):
         status, result = self.get_json("/api/v1/zones/UNKNOWN")
         self.assertEqual(status, 404)
         self.assertIn("error", result)
+
+    def test_live_lst_requires_nasa_credentials(self):
+        with patch.dict(os.environ, {
+            "NASA_EARTHDATA_USERNAME": "",
+            "NASA_EARTHDATA_PASSWORD": "",
+        }):
+            status, result = self.get_json("/api/v1/live-lst?zone_id=MZ_001")
+        self.assertEqual(status, 503)
+        self.assertIn("NASA_EARTHDATA_USERNAME", result["error"])
+
+    def test_modis_lst_uses_only_good_quality_observations(self):
+        csv_data = (
+            "Date,MOD11A1.061_LST_Day_1km,MOD11A1.061_QC_Day\n"
+            "2026-11-18,15000,0\n"
+            "2026-11-19,16000,1\n"
+        ).encode("utf-8")
+        result = dashboard_server.parse_modis_lst_csv(csv_data)
+        self.assertEqual(result["observed_at"], "2026-11-18")
+        self.assertEqual(result["lst_c"], 26.85)
+        self.assertEqual(result["product"], "MOD11A1.061")
 
     def test_recommendation_and_scenario(self):
         status, recommendation = self.post_json(
